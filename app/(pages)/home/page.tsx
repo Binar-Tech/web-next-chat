@@ -13,11 +13,12 @@ import {
 import { Input } from "@/app/_components/ui/input";
 import { Label } from "@/app/_components/ui/label";
 import Image from "next/image";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ChamadosDto, fetchChatsFromApi } from "./_actions/api";
 
 export default function Home() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const cnpj = searchParams.get("cnpj");
   const idOperador = searchParams.get("idOperador");
@@ -35,6 +36,7 @@ export default function Home() {
           // Chama a função do servidor passando os parâmetros
           const result = await fetchChatsFromApi(cnpj, idOperador);
           setData(result);
+          router.push("/chat");
         } catch (err: any) {
           setError(err.message);
         } finally {
@@ -58,12 +60,12 @@ export default function Home() {
     console.log("CLICOU NO BOTAO");
   }
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center h-screen p-4 gap-6 sm:p-10 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <div className="flex gap-4 items-center flex-col sm:flex-row w-full">
-          <Card className="w-full sm:w-[350px] max-w-md">
+    <div className="flex items-center justify-center h-screen p-4 sm:p-10 font-[family-name:var(--font-geist-sans)]">
+      <main className="flex flex-col items-center sm:items-start w-full">
+        <div className="flex items-center justify-center w-full">
+          <Card className="w-full h-auto sm:w-[450px] max-w-md bg-white sm:rounded-lg sm:shadow-lg sm:border">
             <CardHeader>
-              <CardTitle className="justify-center ">
+              <CardTitle className="justify-center">
                 <div>
                   <Image
                     src="/binar-gptw.svg"
