@@ -54,7 +54,12 @@ export default function Home() {
         <Loading />
       </div>
     );
-  if (error) return <p>Erro: {error}</p>;
+  if (error)
+    return (
+      <div>
+        <p>Erro: {error}</p>
+      </div>
+    );
 
   function handleClickButton() {
     console.log("CLICOU NO BOTAO");
