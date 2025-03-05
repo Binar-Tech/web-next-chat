@@ -36,7 +36,7 @@ export default function Home() {
           // Chama a função do servidor passando os parâmetros
           const result = await fetchChatsFromApi(cnpj, idOperador);
           setData(result);
-          router.push("/chat");
+          router.push("/chat/tecnico");
         } catch (err: any) {
           setError(err.message);
         } finally {

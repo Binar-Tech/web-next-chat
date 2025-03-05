@@ -1,9 +1,11 @@
+import { MessageDto } from "../(pages)/chat/_actions/dtos/message-dto";
+
 interface MessageProps {
-  text: string;
+  message: MessageDto;
   isCurrentUser: boolean;
 }
 
-export default function Message({ text, isCurrentUser }: MessageProps) {
+export default function Message({ message, isCurrentUser }: MessageProps) {
   return (
     <div
       className={`flex ${isCurrentUser ? "justify-end" : "justify-start"} mb-4`}
@@ -13,7 +15,7 @@ export default function Message({ text, isCurrentUser }: MessageProps) {
           isCurrentUser ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-800"
         }`}
       >
-        <p>{text}</p>
+        <p>{message.mensagem}</p>
       </div>
     </div>
   );

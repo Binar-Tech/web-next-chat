@@ -2,25 +2,19 @@
 import Loading from "@/app/_components/loading";
 import Message from "@/app/_components/message";
 import { Button } from "@/app/_components/ui/button";
+import { ScrollArea } from "@/app/_components/ui/scroll-area";
 import { ClipboardIcon, SendIcon } from "lucide-react";
 import { useEffect, useState } from "react";
-import { ChamadosDto } from "../home/_actions/api";
-import { fetchOpennedCals } from "./_actions/api";
-import ChatList from "./_components/chat-list";
+import { ChamadosDto } from "../../home/_actions/api";
+import { fetchMessagesByIdChamado, fetchOpennedCals } from "../_actions/api";
+import { MessageDto } from "../_actions/dtos/message-dto";
+import ChatList from "../_components/chat-list";
 
-export default function Chat() {
-  const mockMessages = [
-    { id: 1, text: "Hello everyone!", isCurrentUser: false },
-    { id: 2, text: "How's it going?", isCurrentUser: false },
-    {
-      id: 3,
-      text: "Hello it's going well, thanks for asking",
-      isCurrentUser: true,
-    },
-    { id: 4, text: "What about you?", isCurrentUser: false },
-  ];
-  const [data, setData] = useState<ChamadosDto[] | null>(null);
+export default function ChatTecnico() {
+  const [calls, setCalls] = useState<ChamadosDto[] | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [messages, setMessages] = useState<MessageDto[]>([]);
   const [error, setError] = useState(null);
   const [selectedChatId, setSelectedChatId] = useState<number | null>(null);
 
@@ -30,7 +24,7 @@ export default function Chat() {
       try {
         // Chama a função do servidor passando os parâmetros
         const result = await fetchOpennedCals();
-        setData(result);
+        setCalls(result);
       } catch (err: any) {
         setError(err.message);
       } finally {
@@ -42,9 +36,16 @@ export default function Chat() {
   }, []);
 
   // Atualiza o chat selecionado
-  const handleChatSelect = (chatId: number) => {
+  const handleChatSelect = async (chatId: number) => {
+    setLoadingMessages(true);
     setSelectedChatId(chatId);
-    console.log("chat selecionado: " + chatId);
+    try {
+      const result = await fetchMessagesByIdChamado(chatId);
+      setMessages(result);
+    } catch (error) {
+    } finally {
+      setLoadingMessages(false);
+    }
   };
 
   if (loading)
@@ -65,7 +66,7 @@ export default function Chat() {
       <div className="bg-slate-600 flex-[1] h-full min-w-72">
         <div className="flex h-screen bg-gray-100">
           <ChatList
-            chatList={data!}
+            chatList={calls!}
             onSelect={handleChatSelect}
             selectedChatId={selectedChatId}
           />
@@ -75,14 +76,22 @@ export default function Chat() {
       {/* Lado direito - 80% da largura total */}
       <div className="bg-blue-400 flex-[4] h-full">
         <div className="flex flex-col h-screen p-6 bg-gray-100">
-          <div className="flex-1 overflow-y-auto">
-            {mockMessages.map((message) => (
-              <Message
-                key={message.id}
-                text={message.text}
-                isCurrentUser={message.isCurrentUser}
-              />
-            ))}
+          <div className="flex-1 overflow-y-hidden flex flex-col-reverse">
+            <ScrollArea className="h-full w-full rounded-md border px-3">
+              {loadingMessages ? (
+                <div className="h-full">
+                  <Loading />
+                </div>
+              ) : (
+                messages.map((message) => (
+                  <Message
+                    key={message.id_mensagem}
+                    message={message}
+                    isCurrentUser={message.remetente === "TECNICO"}
+                  />
+                ))
+              )}
+            </ScrollArea>
           </div>
           <div className="mt-4 gap-2 flex flex-row">
             <input
