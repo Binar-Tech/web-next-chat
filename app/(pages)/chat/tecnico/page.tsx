@@ -2,7 +2,6 @@
 import Loading from "@/app/_components/loading";
 import Message from "@/app/_components/message";
 import { Button } from "@/app/_components/ui/button";
-import { ScrollArea } from "@/app/_components/ui/scroll-area";
 import { ClipboardIcon, SendIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ChamadosDto } from "../../home/_actions/api";
@@ -76,22 +75,20 @@ export default function ChatTecnico() {
       {/* Lado direito - 80% da largura total */}
       <div className="bg-blue-400 flex-[4] h-full">
         <div className="flex flex-col h-screen p-6 bg-gray-100">
-          <div className="flex-1 overflow-y-hidden flex flex-col-reverse">
-            <ScrollArea className="h-full w-full rounded-md border px-3">
-              {loadingMessages ? (
-                <div className="h-full">
-                  <Loading />
-                </div>
-              ) : (
-                messages.map((message) => (
-                  <Message
-                    key={message.id_mensagem}
-                    message={message}
-                    isCurrentUser={message.remetente === "TECNICO"}
-                  />
-                ))
-              )}
-            </ScrollArea>
+          <div className="flex-1 overflow-y-auto flex flex-col-reverse">
+            {loadingMessages ? (
+              <div className="h-full">
+                <Loading />
+              </div>
+            ) : (
+              messages.map((message) => (
+                <Message
+                  key={message.id_mensagem}
+                  message={message}
+                  isCurrentUser={message.remetente === "TECNICO"}
+                />
+              ))
+            )}
           </div>
           <div className="mt-4 gap-2 flex flex-row">
             <input
