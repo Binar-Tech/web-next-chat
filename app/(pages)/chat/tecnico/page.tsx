@@ -1,24 +1,33 @@
 "use client";
+import ImagePreviewModal from "@/app/_components/image-preview-modal";
 import Loading from "@/app/_components/loading";
 import Message from "@/app/_components/message";
 import { Button } from "@/app/_components/ui/button";
 import { ClipboardIcon, SendIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { ChamadosDto } from "../../home/_actions/api";
 import { fetchMessagesByIdChamado, fetchOpennedCals } from "../_actions/api";
 import { MessageDto } from "../_actions/dtos/message-dto";
+import { socketService } from "../_actions/socket-service";
 import ChatList from "../_components/chat-list";
 
 export default function ChatTecnico() {
+  const searchParams = useSearchParams();
+  const nomeOperador = searchParams.get("nomeTecnico");
   const [calls, setCalls] = useState<ChamadosDto[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [messages, setMessages] = useState<MessageDto[]>([]);
   const [error, setError] = useState(null);
   const [selectedChatId, setSelectedChatId] = useState<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
     // Chama a Server Action
+    connectSocket();
     const fetchData = async () => {
       try {
         // Chama a função do servidor passando os parâmetros
@@ -34,6 +43,26 @@ export default function ChatTecnico() {
     fetchData();
   }, []);
 
+  const connectSocket = async () => {
+    try {
+      socketService.connect();
+      await loginSocket();
+    } catch (error) {}
+
+    return () => {
+      socketService.disconnect();
+    };
+  };
+
+  const loginSocket = async () => {
+    const data = {
+      nome: nomeOperador || "", // Se for null, usa string vazia
+      cnpj: null, // Se for null, usa undefined (para campo opcional)
+      type: "TECNICO" as "TECNICO" | "OPERADOR", // Garante que seja um dos valores esperados
+    };
+    socketService.login(data);
+  };
+
   // Atualiza o chat selecionado
   const handleChatSelect = async (chatId: number) => {
     setLoadingMessages(true);
@@ -44,6 +73,21 @@ export default function ChatTecnico() {
     } catch (error) {
     } finally {
       setLoadingMessages(false);
+    }
+  };
+
+  const handleOpenFilePicker = () => {
+    fileInputRef.current?.click();
+  };
+
+  // Quando o usuário seleciona um arquivo
+  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    console.log("Abrindo seletor de arquivos...");
+    const file = event.target.files?.[0];
+    if (file) {
+      const localUrl = URL.createObjectURL(file);
+      setImageUrl(localUrl);
+      setModalOpen(true); // Abrir o modal automaticamente
     }
   };
 
@@ -96,12 +140,27 @@ export default function ChatTecnico() {
               placeholder="Type a message"
               className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            <Button className="h-full bg-blue-400">
+            <Button
+              className="h-full bg-blue-400"
+              onClick={handleOpenFilePicker}
+            >
               <ClipboardIcon />
             </Button>
             <Button className="h-full">
               <SendIcon />
             </Button>
+            <input
+              type="file"
+              accept="image/*"
+              ref={fileInputRef}
+              onChange={handleImageChange}
+              className="hidden"
+            />
+            <ImagePreviewModal
+              open={modalOpen}
+              onClose={() => setModalOpen(false)}
+              imageUrl={imageUrl}
+            />
           </div>
         </div>
       </div>

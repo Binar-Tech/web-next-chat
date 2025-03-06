@@ -3,22 +3,17 @@ import Loading from "@/app/_components/loading";
 import Message from "@/app/_components/message";
 import { Button } from "@/app/_components/ui/button";
 import { ClipboardIcon, SendIcon } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ChamadosDto } from "../../home/_actions/api";
 import { fetchOpennedCals } from "../_actions/api";
 import { MessageDto } from "../_actions/dtos/message-dto";
+import { socketService } from "../_actions/socket-service";
 
 export default function ChatOperador() {
-  const mockMessages = [
-    { id: 1, text: "Hello everyone!", isCurrentUser: false },
-    { id: 2, text: "How's it going?", isCurrentUser: false },
-    {
-      id: 3,
-      text: "Hello it's going well, thanks for asking",
-      isCurrentUser: true,
-    },
-    { id: 4, text: "What about you?", isCurrentUser: false },
-  ];
+  const searchParams = useSearchParams();
+  const nomeOperador = searchParams.get("nomeOperador");
+  const cnpj = searchParams.get("cnpj");
   const [data, setData] = useState<ChamadosDto[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
@@ -28,6 +23,8 @@ export default function ChatOperador() {
 
   useEffect(() => {
     // Chama a Server Action
+    connectSocket();
+
     const fetchData = async () => {
       try {
         // Chama a função do servidor passando os parâmetros
@@ -42,6 +39,26 @@ export default function ChatOperador() {
 
     fetchData();
   }, []);
+
+  const connectSocket = async () => {
+    try {
+      socketService.connect();
+      await loginSocket();
+    } catch (error) {}
+
+    return () => {
+      socketService.disconnect();
+    };
+  };
+
+  const loginSocket = async () => {
+    const data = {
+      nome: nomeOperador || "", // Se for null, usa string vazia
+      cnpj: cnpj ?? null, // Se for null, usa undefined (para campo opcional)
+      type: "OPERADOR" as "TECNICO" | "OPERADOR", // Garante que seja um dos valores esperados
+    };
+    socketService.login(data);
+  };
 
   const fetchMessagesByIdChamado = async (id_chamado: number) => {};
 
