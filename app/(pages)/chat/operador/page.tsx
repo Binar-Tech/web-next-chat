@@ -4,40 +4,40 @@ import Message from "@/app/_components/message";
 import { Button } from "@/app/_components/ui/button";
 import { ClipboardIcon, SendIcon } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
-import { ChamadosDto } from "../../home/_actions/api";
-import { fetchOpennedCals } from "../_actions/api";
+import { useEffect } from "react";
 import { MessageDto } from "../_actions/dtos/message-dto";
-import { socketService } from "../_actions/socket-service";
+
+import { useChatMessages } from "../_hooks/useChatMessages";
+import { useFetchCalls } from "../_hooks/useFetchCalls";
+import { PerfilEnum } from "../_services/enums/perfil.enum";
+import { eventManager } from "../_services/socket/eventManager";
+import { socketService } from "../_services/socket/socketService";
 
 export default function ChatOperador() {
   const searchParams = useSearchParams();
-  const nomeOperador = searchParams.get("nomeOperador");
-  const cnpj = searchParams.get("cnpj");
-  const [data, setData] = useState<ChamadosDto[] | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [loadingMessages, setLoadingMessages] = useState(false);
-  const [messages, setMessages] = useState<MessageDto[]>([]);
-  const [error, setError] = useState(null);
-  const [selectedChatId, setSelectedChatId] = useState<number | null>(null);
+  const nomeOperador = searchParams.get("nomeOperador") || "";
+  const idOperador = searchParams.get("idOperador") || "";
+  const cnpj = searchParams.get("cnpj") ?? null;
+  const { data: calls, loading, error } = useFetchCalls();
+  const { messages, setMessages, loadingMessages, fetchMessages } =
+    useChatMessages();
 
   useEffect(() => {
-    // Chama a Server Action
     connectSocket();
 
-    const fetchData = async () => {
-      try {
-        // Chama a função do servidor passando os parâmetros
-        const result = await fetchOpennedCals();
-        setData(result);
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
+    //socketService.login({ nome: nomeOperador, cnpj, type: "OPERADOR" });
+
+    // Criamos a função separadamente para poder referenciá-la depois
+    const handleNewMessage = (message: MessageDto) => {
+      setMessages((prev) => [...prev, message]);
     };
 
-    fetchData();
+    eventManager.on("message", handleNewMessage);
+
+    return () => {
+      eventManager.off("message", handleNewMessage); // Removemos corretamente o listener
+      socketService.disconnect();
+    };
   }, []);
 
   const connectSocket = async () => {
@@ -54,21 +54,11 @@ export default function ChatOperador() {
   const loginSocket = async () => {
     const data = {
       nome: nomeOperador || "", // Se for null, usa string vazia
-      cnpj: cnpj ?? null, // Se for null, usa undefined (para campo opcional)
-      type: "OPERADOR" as "TECNICO" | "OPERADOR", // Garante que seja um dos valores esperados
+      cnpj: cnpj, // Se for null, usa undefined (para campo opcional)
+      type: PerfilEnum.OPERADOR,
+      id: idOperador, // Garante que seja um dos valores esperados
     };
     socketService.login(data);
-  };
-
-  const fetchMessagesByIdChamado = async (id_chamado: number) => {};
-
-  // Atualiza o chat selecionado
-  const handleChatSelect = async (chatId: number) => {
-    setLoadingMessages(true);
-    setSelectedChatId(chatId);
-    try {
-      const result = await fetchMessagesByIdChamado(chatId);
-    } catch (error) {}
   };
 
   if (loading)
@@ -77,6 +67,7 @@ export default function ChatOperador() {
         <Loading />
       </div>
     );
+
   if (error)
     return (
       <div>

@@ -7,41 +7,78 @@ import { ClipboardIcon, SendIcon } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ChamadosDto } from "../../home/_actions/api";
-import { fetchMessagesByIdChamado, fetchOpennedCals } from "../_actions/api";
+import { fetchOpennedCals } from "../_actions/api";
 import { MessageDto } from "../_actions/dtos/message-dto";
-import { socketService } from "../_actions/socket-service";
 import ChatList from "../_components/chat-list";
+import { useChatMessages } from "../_hooks/useChatMessages";
+import { PerfilEnum } from "../_services/enums/perfil.enum";
+import { eventManager } from "../_services/socket/eventManager";
+import { socketService } from "../_services/socket/socketService";
 
 export default function ChatTecnico() {
   const searchParams = useSearchParams();
   const nomeOperador = searchParams.get("nomeTecnico");
+  const idOperador = searchParams.get("idOperador");
   const [calls, setCalls] = useState<ChamadosDto[] | null>(null);
   const [loading, setLoading] = useState(true);
-  const [loadingMessages, setLoadingMessages] = useState(false);
-  const [messages, setMessages] = useState<MessageDto[]>([]);
   const [error, setError] = useState(null);
   const [selectedChatId, setSelectedChatId] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const hasRegisteredEvents = useRef(false);
+  const { fetchMessages, loadingMessages, messages, setMessages } =
+    useChatMessages();
 
   useEffect(() => {
     // Chama a Server Action
     connectSocket();
-    const fetchData = async () => {
-      try {
-        // Chama a função do servidor passando os parâmetros
-        const result = await fetchOpennedCals();
-        setCalls(result);
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
+
+    // 🔥 Adiciona os eventos no eventManager
+    const onMessage = (data: MessageDto) => {
+      setMessages((prev) => [...prev, data]);
     };
 
+    const onCallUpdated = (data: ChamadosDto) => {
+      setCalls((prev) =>
+        prev
+          ? prev.map((c) => (c.id_chamado === data.id_chamado ? data : c))
+          : []
+      );
+    };
+
+    const onCallClosed = (data: { id: number }) => {
+      setCalls((prev) => prev?.filter((c) => c.id_chamado !== data.id) || []);
+    };
+
+    eventManager.on("message", onMessage);
+    eventManager.on("call-updated", onCallUpdated);
+    eventManager.on("call-closed", onCallClosed);
+
     fetchData();
+
+    return () => {
+      // 🔥 Remove os eventos ao desmontar o componente
+      eventManager.off("receiveMessage", onMessage);
+      eventManager.off("call-updated", onCallUpdated);
+      eventManager.off("call-closed", onCallClosed);
+
+      socketService.disconnect();
+    };
   }, []);
+
+  //carrega todos os chats abertos
+  const fetchData = async () => {
+    try {
+      // Chama a função do servidor passando os parâmetros
+      const result = await fetchOpennedCals();
+      setCalls(result);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const connectSocket = async () => {
     try {
@@ -58,21 +95,22 @@ export default function ChatTecnico() {
     const data = {
       nome: nomeOperador || "", // Se for null, usa string vazia
       cnpj: null, // Se for null, usa undefined (para campo opcional)
-      type: "TECNICO" as "TECNICO" | "OPERADOR", // Garante que seja um dos valores esperados
+      type: PerfilEnum.TECNICO,
+      id: idOperador || "", // Garante que seja um dos valores esperados
     };
     socketService.login(data);
   };
 
   // Atualiza o chat selecionado
   const handleChatSelect = async (chatId: number) => {
-    setLoadingMessages(true);
+    //setLoadingMessages(true);
     setSelectedChatId(chatId);
     try {
-      const result = await fetchMessagesByIdChamado(chatId);
-      setMessages(result);
+      await fetchMessages(chatId);
+      //setMessages(result);
     } catch (error) {
     } finally {
-      setLoadingMessages(false);
+      //setLoadingMessages(false);
     }
   };
 
