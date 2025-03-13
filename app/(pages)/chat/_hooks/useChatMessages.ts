@@ -5,6 +5,7 @@ import { MessageDto } from "../_actions/dtos/message-dto";
 export function useChatMessages() {
   const [messages, setMessages] = useState<MessageDto[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
+  const [error, setError] = useState(null);
 
   const fetchMessages = async (chatId: number) => {
     setLoadingMessages(true);
@@ -18,5 +19,5 @@ export function useChatMessages() {
     }
   };
 
-  return { messages, setMessages, loadingMessages, fetchMessages }; // 👈 Adicionamos o setMessages aqui
+  return { messages, setMessages, loadingMessages, fetchMessages, error }; // 👈 Adicionamos o setMessages aqui
 }

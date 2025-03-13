@@ -1,7 +1,7 @@
 "use client";
-import ImagePreviewModal from "@/app/_components/image-preview-modal";
-import Loading from "@/app/_components/loading";
-import Message from "@/app/_components/message";
+import ImagePreviewModal from "@/app/(pages)/chat/_components/image-preview-modal";
+import Loading from "@/app/(pages)/chat/_components/loading";
+import Message from "@/app/(pages)/chat/_components/message";
 import { Button } from "@/app/_components/ui/button";
 import { ClipboardIcon, SendIcon } from "lucide-react";
 import { useSearchParams } from "next/navigation";
@@ -17,16 +17,15 @@ import { socketService } from "../_services/socket/socketService";
 
 export default function ChatTecnico() {
   const searchParams = useSearchParams();
-  const nomeOperador = searchParams.get("nomeTecnico");
-  const idOperador = searchParams.get("idOperador");
+  const nomeTecnico = searchParams.get("nomeTecnico");
+  const idTecnico = searchParams.get("idTecnico");
   const [calls, setCalls] = useState<ChamadosDto[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedChatId, setSelectedChatId] = useState<number | null>(null);
+  const [selectedChatId, setSelectedChatId] = useState<number>(0);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const hasRegisteredEvents = useRef(false);
   const { fetchMessages, loadingMessages, messages, setMessages } =
     useChatMessages();
 
@@ -35,8 +34,37 @@ export default function ChatTecnico() {
     connectSocket();
 
     // 🔥 Adiciona os eventos no eventManager
-    const onMessage = (data: MessageDto) => {
-      setMessages((prev) => [...prev, data]);
+    const handleNewMessage = (message: MessageDto) => {
+      console.log("nova mensagem: ", message);
+      if (message.id_chamado === selectedChatId) {
+        setMessages((prev) => {
+          const updatedMessages = [message, ...prev]; // Adiciona a mensagem no início
+          return updatedMessages;
+        });
+      }
+      setCalls((prevCalls) => {
+        if (!prevCalls) return prevCalls; // Garante que prevCalls não seja null/undefined
+
+        console.log("prevCalls: ", prevCalls);
+
+        // Encontra a call a ser movida e a separa das demais
+        let updatedCall: ChamadosDto | null = null;
+        const otherCalls = prevCalls.filter((call) => {
+          if (call.tecnico_responsavel === idTecnico) {
+            updatedCall = {
+              ...call,
+              unread_messages: call.unread_messages
+                ? call.unread_messages + 1
+                : 1,
+            };
+            return false; // Remove essa call da lista original
+          }
+          return true; // Mantém as outras calls
+        });
+
+        // Se encontrou a call, coloca ela no topo
+        return updatedCall ? [updatedCall, ...otherCalls] : prevCalls;
+      });
     };
 
     const onCallUpdated = (data: ChamadosDto) => {
@@ -51,7 +79,7 @@ export default function ChatTecnico() {
       setCalls((prev) => prev?.filter((c) => c.id_chamado !== data.id) || []);
     };
 
-    eventManager.on("message", onMessage);
+    eventManager.on("new-message", handleNewMessage);
     eventManager.on("call-updated", onCallUpdated);
     eventManager.on("call-closed", onCallClosed);
 
@@ -59,7 +87,7 @@ export default function ChatTecnico() {
 
     return () => {
       // 🔥 Remove os eventos ao desmontar o componente
-      eventManager.off("receiveMessage", onMessage);
+      eventManager.off("new-message", handleNewMessage);
       eventManager.off("call-updated", onCallUpdated);
       eventManager.off("call-closed", onCallClosed);
 
@@ -93,10 +121,10 @@ export default function ChatTecnico() {
 
   const loginSocket = async () => {
     const data = {
-      nome: nomeOperador || "", // Se for null, usa string vazia
+      nome: nomeTecnico || "", // Se for null, usa string vazia
       cnpj: null, // Se for null, usa undefined (para campo opcional)
       type: PerfilEnum.TECNICO,
-      id: idOperador || "", // Garante que seja um dos valores esperados
+      id: idTecnico || "", // Garante que seja um dos valores esperados
     };
     socketService.login(data);
   };
@@ -112,6 +140,15 @@ export default function ChatTecnico() {
     } finally {
       //setLoadingMessages(false);
     }
+
+    // Atualiza a call correspondente para unread_messages = 0
+    setCalls((prevCalls) => {
+      if (!prevCalls) return prevCalls;
+
+      return prevCalls.map((call) =>
+        call.id_chamado === chatId ? { ...call, unread_messages: 0 } : call
+      );
+    });
   };
 
   const handleOpenFilePicker = () => {
@@ -147,7 +184,8 @@ export default function ChatTecnico() {
       <div className="bg-slate-600 flex-[1] h-full min-w-72">
         <div className="flex h-screen bg-gray-100">
           <ChatList
-            chatList={calls!}
+            idUserLogged={idTecnico!}
+            chatList={calls || []}
             onSelect={handleChatSelect}
             selectedChatId={selectedChatId}
           />

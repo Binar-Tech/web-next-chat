@@ -12,6 +12,7 @@ export interface ChamadosDto {
   status: string;
   link_operador: string;
   id_ticket: string;
+  unread_messages: number;
 }
 
 export async function fetchChatsFromApi(

@@ -1,14 +1,15 @@
 "use client";
-import Loading from "@/app/_components/loading";
-import Message from "@/app/_components/message";
+import Loading from "@/app/(pages)/chat/_components/loading";
+import Message from "@/app/(pages)/chat/_components/message";
 import { Button } from "@/app/_components/ui/button";
 import { ClipboardIcon, SendIcon } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { MessageDto } from "../_actions/dtos/message-dto";
 
+import { Call } from "../_actions/dtos/call.interface";
+import { CreateMessageDto } from "../_actions/dtos/create-message.dto";
 import { useChatMessages } from "../_hooks/useChatMessages";
-import { useFetchCalls } from "../_hooks/useFetchCalls";
 import { PerfilEnum } from "../_services/enums/perfil.enum";
 import { eventManager } from "../_services/socket/eventManager";
 import { socketService } from "../_services/socket/socketService";
@@ -18,9 +19,10 @@ export default function ChatOperador() {
   const nomeOperador = searchParams.get("nomeOperador") || "";
   const idOperador = searchParams.get("idOperador") || "";
   const cnpj = searchParams.get("cnpj") ?? null;
-  const { data: calls, loading, error } = useFetchCalls();
-  const { messages, setMessages, loadingMessages, fetchMessages } =
+  const { messages, setMessages, loadingMessages, fetchMessages, error } =
     useChatMessages();
+  const [call, setCall] = useState<Call | null>(null);
+  const [mensagem, setMensagem] = useState<string>("");
 
   useEffect(() => {
     connectSocket();
@@ -29,13 +31,23 @@ export default function ChatOperador() {
 
     // Criamos a função separadamente para poder referenciá-la depois
     const handleNewMessage = (message: MessageDto) => {
-      setMessages((prev) => [...prev, message]);
+      setMessages((prev) => {
+        const updatedMessages = [message, ...prev]; // Adiciona a mensagem no início
+        return updatedMessages;
+      });
     };
 
-    eventManager.on("message", handleNewMessage);
+    const handleLogged = async (call: Call) => {
+      //setMessages((prev) => [...prev, message]);
+      setCall(call);
+      await fetchMessages(call.chamado.id_chamado);
+    };
+
+    eventManager.on("new-message", handleNewMessage);
+    eventManager.on("logged", handleLogged);
 
     return () => {
-      eventManager.off("message", handleNewMessage); // Removemos corretamente o listener
+      eventManager.off("new-message", handleNewMessage); // Removemos corretamente o listener
       socketService.disconnect();
     };
   }, []);
@@ -61,7 +73,21 @@ export default function ChatOperador() {
     socketService.login(data);
   };
 
-  if (loading)
+  const handleSubmitMessage = async () => {
+    if (!mensagem.trim()) return; // Evita envio de mensagens vazias
+
+    const message: CreateMessageDto = {
+      id_chamado: call!.chamado.id_chamado,
+      mensagem,
+      remetente: "OPERADOR",
+      tecnico_responsavel: null,
+    };
+
+    socketService.sendMessage(message);
+    setMensagem(""); // Limpa o campo de input após envio
+  };
+
+  if (loadingMessages)
     return (
       <div className="h-full">
         <Loading />
@@ -78,7 +104,7 @@ export default function ChatOperador() {
     <div className="flex w-full h-screen">
       <div className="bg-blue-400 flex-1 h-full">
         <div className="flex flex-col h-screen p-6 bg-gray-100">
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto flex flex-col-reverse scroll-hidden">
             {loadingMessages ? (
               <div className="h-full">
                 <Loading />
@@ -96,13 +122,15 @@ export default function ChatOperador() {
           <div className="mt-4 gap-2 flex flex-row">
             <input
               type="text"
-              placeholder="Type a message"
+              placeholder="Mensagem"
               className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onChange={(e) => setMensagem(e.target.value)}
+              value={mensagem}
             />
             <Button className="h-full bg-blue-400">
               <ClipboardIcon />
             </Button>
-            <Button className="h-full">
+            <Button className="h-full" onClick={handleSubmitMessage}>
               <SendIcon />
             </Button>
           </div>

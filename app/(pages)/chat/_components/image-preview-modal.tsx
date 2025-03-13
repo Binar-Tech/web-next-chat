@@ -1,11 +1,11 @@
-import { Button } from "./ui/button";
+import { Button } from "../../../_components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "./ui/dialog";
+} from "../../../_components/ui/dialog";
 
 interface ImagePreviewModalProps {
   open: boolean;

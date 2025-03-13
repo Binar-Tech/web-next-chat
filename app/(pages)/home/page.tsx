@@ -1,6 +1,6 @@
 "use client";
 
-import Loading from "@/app/_components/loading";
+import Loading from "@/app/(pages)/chat/_components/loading";
 import { Button } from "@/app/_components/ui/button";
 import {
   Card,

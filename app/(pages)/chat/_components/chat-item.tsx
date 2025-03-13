@@ -16,13 +16,13 @@ export default function ChatItem({
   return (
     <div
       onClick={() => onSelect(chamado.id_chamado)}
-      className={`flex items-center p-4 cursor-pointer ${
-        isSelected ? "bg-blue-300" : "hover:bg-gray-50"
+      className={`flex items-center py-2 px-2 cursor-pointer rounded-sm ${
+        isSelected ? "bg-orange-300" : "hover:bg-blue-300"
       }`}
     >
       <div className="flex-1">
-        <h3 className="font-semibold">{chamado.nome_operador}</h3>
-        <p className="text-sm text-gray-500">"ultima mensagem"</p>
+        <h3 className="font-bold">{chamado.nome_operador}</h3>
+        <p className="text-sm text-gray-500">{chamado.contato}</p>
       </div>
 
       {unreadCount > 0 && (

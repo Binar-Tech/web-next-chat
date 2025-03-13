@@ -1,4 +1,4 @@
-import { MessageDto } from "../(pages)/chat/_actions/dtos/message-dto";
+import { MessageDto } from "../_actions/dtos/message-dto";
 
 interface MessageProps {
   message: MessageDto;

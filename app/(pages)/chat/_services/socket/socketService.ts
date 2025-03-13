@@ -1,3 +1,4 @@
+import { CreateMessageDto } from "../../_actions/dtos/create-message.dto";
 import { LoginSocketDto } from "../dto/loginSocket.dto";
 import { eventManager } from "./eventManager";
 import { SocketClient } from "./socketClient";
@@ -14,20 +15,21 @@ class SocketService {
 
     this.client.on("connect", () => eventManager.emit("connect"));
     this.client.on("disconnect", () => eventManager.emit("disconnect"));
-    this.client.on("message", (message) =>
-      eventManager.emit("message", message)
+    this.client.on("new-message", (message) =>
+      eventManager.emit("new-message", message)
     );
     this.client.on("callUpdate", (call) =>
       eventManager.emit("callUpdate", call)
     );
+    this.client.on("logged", (logged) => eventManager.emit("logged", logged));
   }
 
   login(data: LoginSocketDto) {
     this.client.emit("login", data);
   }
 
-  sendMessage(chatId: number, message: string) {
-    this.client.emit("sendMessage", { chatId, message });
+  sendMessage(message: CreateMessageDto) {
+    this.client.emit("message", message);
   }
 
   disconnect() {

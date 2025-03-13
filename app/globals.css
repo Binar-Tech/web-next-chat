@@ -69,4 +69,15 @@ body {
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Esconde a barra de scroll no Chrome, Safari e Edge */
+  .scroll-hidden::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Esconde a barra de scroll no Firefox */
+  .scroll-hidden {
+    scrollbar-width: none;
+    -ms-overflow-style: none; /* IE e Edge */
+  }
 }
