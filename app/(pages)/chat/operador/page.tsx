@@ -40,7 +40,7 @@ export default function ChatOperador() {
     const handleLogged = async (call: Call) => {
       //setMessages((prev) => [...prev, message]);
       setCall(call);
-      await fetchMessages(call.chamado.id_chamado);
+      await fetchMessages(call.chamado.id_chamado, 1, 99999);
     };
 
     eventManager.on("new-message", handleNewMessage);

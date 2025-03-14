@@ -17,10 +17,14 @@ export async function fetchOpennedCals(): Promise<ChamadosDto[]> {
 }
 
 export async function fetchMessagesByIdChamado(
-  id_chamado: number
+  id_chamado: number,
+  nextPage: number,
+  limit: number
 ): Promise<MessageDto[]> {
   // Aqui você faz a lógica da API, por exemplo, uma chamada de fetch
-  const response = await fetch(`http://10.0.1.121:4000/messages/${id_chamado}`);
+  const response = await fetch(
+    `http://10.0.1.121:4000/messages/${id_chamado}?limit=${limit}&skip=${nextPage}`
+  );
 
   if (!response.ok) {
     throw new Error("Erro ao chamar a API");

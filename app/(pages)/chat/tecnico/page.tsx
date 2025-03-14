@@ -5,9 +5,10 @@ import Message from "@/app/(pages)/chat/_components/message";
 import { Button } from "@/app/_components/ui/button";
 import { ClipboardIcon, SendIcon } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ChamadosDto } from "../../home/_actions/api";
 import { fetchOpennedCals } from "../_actions/api";
+import { CreateMessageDto } from "../_actions/dtos/create-message.dto";
 import { MessageDto } from "../_actions/dtos/message-dto";
 import ChatList from "../_components/chat-list";
 import { useChatMessages } from "../_hooks/useChatMessages";
@@ -23,31 +24,34 @@ export default function ChatTecnico() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedChatId, setSelectedChatId] = useState<number>(0);
+  const selectedChatIdRef = useRef(selectedChatId);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const { fetchMessages, loadingMessages, messages, setMessages } =
     useChatMessages();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [message, setMessage] = useState("");
 
-  useEffect(() => {
-    // Chama a Server Action
-    connectSocket();
-
-    // 🔥 Adiciona os eventos no eventManager
-    const handleNewMessage = (message: MessageDto) => {
-      console.log("nova mensagem: ", message);
-      if (message.id_chamado === selectedChatId) {
-        setMessages((prev) => {
-          const updatedMessages = [message, ...prev]; // Adiciona a mensagem no início
-          return updatedMessages;
-        });
+  // 🔥 useCallback para evitar recriação desnecessária da função
+  //ela será responsavel para tratar novas mensagens
+  const handleNewMessage = useCallback(
+    (message: MessageDto) => {
+      //verifica se o chat selecionado é igual ao da mensagem que veio, para atualizar na tela
+      console.log("message: ", message);
+      console.log("chat selecionado: ", selectedChatIdRef.current);
+      if (message.id_chamado === selectedChatIdRef.current) {
+        setMessages((prev) => [...prev, message]);
       }
+
+      //atualiza a lista de chamados
+      //se pertencer ao tecnico logado ou em aberto, adiciona o contador de mensagens não lidas
       setCalls((prevCalls) => {
-        if (!prevCalls) return prevCalls; // Garante que prevCalls não seja null/undefined
+        if (!prevCalls) return prevCalls;
 
         console.log("prevCalls: ", prevCalls);
 
-        // Encontra a call a ser movida e a separa das demais
         let updatedCall: ChamadosDto | null = null;
         const otherCalls = prevCalls.filter((call) => {
           if (call.tecnico_responsavel === idTecnico) {
@@ -57,27 +61,30 @@ export default function ChatTecnico() {
                 ? call.unread_messages + 1
                 : 1,
             };
-            return false; // Remove essa call da lista original
+            return false;
           }
-          return true; // Mantém as outras calls
+          return true;
         });
 
-        // Se encontrou a call, coloca ela no topo
         return updatedCall ? [updatedCall, ...otherCalls] : prevCalls;
       });
-    };
+    },
+    [selectedChatIdRef.current]
+  );
 
-    const onCallUpdated = (data: ChamadosDto) => {
-      setCalls((prev) =>
-        prev
-          ? prev.map((c) => (c.id_chamado === data.id_chamado ? data : c))
-          : []
-      );
-    };
+  const onCallUpdated = useCallback((data: ChamadosDto) => {
+    setCalls((prev) =>
+      prev ? prev.map((c) => (c.id_chamado === data.id_chamado ? data : c)) : []
+    );
+  }, []);
 
-    const onCallClosed = (data: { id: number }) => {
-      setCalls((prev) => prev?.filter((c) => c.id_chamado !== data.id) || []);
-    };
+  const onCallClosed = useCallback((data: { id: number }) => {
+    setCalls((prev) => prev?.filter((c) => c.id_chamado !== data.id) || []);
+  }, []);
+
+  // 🔥 Conecta o socket apenas uma vez e adiciona/remover eventos corretamente
+  useEffect(() => {
+    //connectSocket();
 
     eventManager.on("new-message", handleNewMessage);
     eventManager.on("call-updated", onCallUpdated);
@@ -86,11 +93,18 @@ export default function ChatTecnico() {
     fetchData();
 
     return () => {
-      // 🔥 Remove os eventos ao desmontar o componente
       eventManager.off("new-message", handleNewMessage);
       eventManager.off("call-updated", onCallUpdated);
       eventManager.off("call-closed", onCallClosed);
 
+      //socketService.disconnect();
+    };
+  }, [handleNewMessage, onCallUpdated, onCallClosed]);
+
+  useEffect(() => {
+    connectSocket();
+
+    return () => {
       socketService.disconnect();
     };
   }, []);
@@ -134,7 +148,7 @@ export default function ChatTecnico() {
     //setLoadingMessages(true);
     setSelectedChatId(chatId);
     try {
-      await fetchMessages(chatId);
+      await fetchMessages(chatId, 1, 999);
       //setMessages(result);
     } catch (error) {
     } finally {
@@ -151,6 +165,12 @@ export default function ChatTecnico() {
     });
   };
 
+  // Sempre que o estado mudar, atualiza o ref
+  useEffect(() => {
+    selectedChatIdRef.current = selectedChatId;
+    console.log("atualizou o estado: ", selectedChatId);
+  }, [selectedChatId]);
+
   const handleOpenFilePicker = () => {
     fileInputRef.current?.click();
   };
@@ -164,6 +184,34 @@ export default function ChatTecnico() {
       setImageUrl(localUrl);
       setModalOpen(true); // Abrir o modal automaticamente
     }
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const scrollToBottom = () => {
+    if (containerRef.current) {
+      containerRef.current.scrollTop = containerRef.current.scrollHeight;
+    }
+  };
+
+  const handleSendMessage = () => {
+    console.log("clicou");
+    if (!message.trim()) return; // Evita envio de mensagens vazias
+
+    const newMessage: CreateMessageDto = {
+      id_chamado: selectedChatIdRef.current,
+      mensagem: message,
+      remetente: PerfilEnum.TECNICO,
+      tecnico_responsavel: nomeTecnico,
+    };
+    console.log("passou", newMessage);
+    socketService.sendMessage(newMessage);
+
+    setMessage(""); // Limpa o input após enviar
+
+    inputRef.current?.focus(); //foca o cursor no input
   };
 
   if (loading)
@@ -195,7 +243,10 @@ export default function ChatTecnico() {
       {/* Lado direito - 80% da largura total */}
       <div className="bg-blue-400 flex-[4] h-full">
         <div className="flex flex-col h-screen p-6 bg-gray-100">
-          <div className="flex-1 overflow-y-auto flex flex-col-reverse">
+          <div
+            ref={containerRef}
+            className="flex-1 overflow-y-auto scroll-hidden"
+          >
             {loadingMessages ? (
               <div className="h-full">
                 <Loading />
@@ -212,9 +263,12 @@ export default function ChatTecnico() {
           </div>
           <div className="mt-4 gap-2 flex flex-row">
             <input
+              ref={inputRef}
               type="text"
               placeholder="Type a message"
               className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onChange={(e) => setMessage(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
             />
             <Button
               className="h-full bg-blue-400"
@@ -222,7 +276,7 @@ export default function ChatTecnico() {
             >
               <ClipboardIcon />
             </Button>
-            <Button className="h-full">
+            <Button className="h-full" onClick={handleSendMessage}>
               <SendIcon />
             </Button>
             <input
