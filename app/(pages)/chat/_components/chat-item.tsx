@@ -1,3 +1,4 @@
+import { Button } from "@/app/_components/ui/button";
 import { ChamadosDto } from "../../home/_actions/api";
 
 interface ChatItemProps {
@@ -20,9 +21,15 @@ export default function ChatItem({
         isSelected ? "bg-orange-300" : "hover:bg-blue-300"
       }`}
     >
-      <div className="flex-1">
+      <div className="flex-1 flex flex-col items-start">
         <h3 className="font-bold">{chamado.nome_operador}</h3>
         <p className="text-sm text-gray-500">{chamado.contato}</p>
+
+        {chamado.tecnico_responsavel === null && (
+          <Button className="bg-blue-400 h-8 self-end hover:bg-orange-400">
+            Atender
+          </Button>
+        )}
       </div>
 
       {unreadCount > 0 && (

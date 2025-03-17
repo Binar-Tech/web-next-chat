@@ -103,7 +103,6 @@ export default function Home() {
               </form>
             </CardContent>
             <CardFooter className="flex justify-between">
-              <Button variant="outline">Cancelar</Button>
               <Button className="bg-orange-500">Iniciar chat</Button>
             </CardFooter>
           </Card>

@@ -4,11 +4,12 @@ import Message from "@/app/(pages)/chat/_components/message";
 import { Button } from "@/app/_components/ui/button";
 import { ClipboardIcon, SendIcon } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MessageDto } from "../_actions/dtos/message-dto";
 
 import { Call } from "../_actions/dtos/call.interface";
 import { CreateMessageDto } from "../_actions/dtos/create-message.dto";
+import ImagePreviewModal from "../_components/image-preview-modal";
 import { useChatMessages } from "../_hooks/useChatMessages";
 import { PerfilEnum } from "../_services/enums/perfil.enum";
 import { eventManager } from "../_services/socket/eventManager";
@@ -21,33 +22,45 @@ export default function ChatOperador() {
   const cnpj = searchParams.get("cnpj") ?? null;
   const { messages, setMessages, loadingMessages, fetchMessages, error } =
     useChatMessages();
+  const [modalOpen, setModalOpen] = useState(false);
   const [call, setCall] = useState<Call | null>(null);
-  const [mensagem, setMensagem] = useState<string>("");
+  const [message, setMessage] = useState<string>("");
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
-    connectSocket();
-
-    //socketService.login({ nome: nomeOperador, cnpj, type: "OPERADOR" });
-
     // Criamos a função separadamente para poder referenciá-la depois
     const handleNewMessage = (message: MessageDto) => {
+      console.log("message: ", message);
       setMessages((prev) => {
-        const updatedMessages = [message, ...prev]; // Adiciona a mensagem no início
+        const updatedMessages = [...prev, message]; // Adiciona a mensagem no início
         return updatedMessages;
       });
     };
 
     const handleLogged = async (call: Call) => {
-      //setMessages((prev) => [...prev, message]);
+      const { chamado } = call;
       setCall(call);
       await fetchMessages(call.chamado.id_chamado, 1, 99999);
     };
 
+    eventManager.on("connect", loginSocket);
     eventManager.on("new-message", handleNewMessage);
     eventManager.on("logged", handleLogged);
 
     return () => {
+      eventManager.off("connect", loginSocket);
       eventManager.off("new-message", handleNewMessage); // Removemos corretamente o listener
+      eventManager.off("logged", handleLogged);
+    };
+  }, []);
+
+  useEffect(() => {
+    connectSocket();
+
+    return () => {
       socketService.disconnect();
     };
   }, []);
@@ -55,7 +68,7 @@ export default function ChatOperador() {
   const connectSocket = async () => {
     try {
       socketService.connect();
-      await loginSocket();
+      //await loginSocket();
     } catch (error) {}
 
     return () => {
@@ -73,18 +86,46 @@ export default function ChatOperador() {
     socketService.login(data);
   };
 
-  const handleSubmitMessage = async () => {
-    if (!mensagem.trim()) return; // Evita envio de mensagens vazias
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
-    const message: CreateMessageDto = {
-      id_chamado: call!.chamado.id_chamado,
-      mensagem,
-      remetente: "OPERADOR",
+  const scrollToBottom = () => {
+    if (containerRef.current) {
+      containerRef.current.scrollTop = containerRef.current.scrollHeight;
+    }
+  };
+
+  //quando o usuário envia uma mensagem
+  const handleSendMessage = () => {
+    if (!message.trim()) return; // Evita envio de mensagens vazias
+
+    const newMessage: CreateMessageDto = {
+      id_chamado: call?.chamado.id_chamado!,
+      mensagem: message,
+      remetente: PerfilEnum.OPERADOR,
       tecnico_responsavel: null,
     };
+    console.log("passou", newMessage);
+    socketService.sendMessage(newMessage);
 
-    socketService.sendMessage(message);
-    setMensagem(""); // Limpa o campo de input após envio
+    setMessage(""); // Limpa o input após enviar
+
+    inputRef.current?.focus(); //foca o cursor no input
+  };
+
+  // Quando o usuário seleciona um arquivo
+  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const localUrl = URL.createObjectURL(file);
+      setImageUrl(localUrl);
+      setModalOpen(true); // Abrir o modal automaticamente
+    }
+  };
+
+  const handleOpenFilePicker = () => {
+    fileInputRef.current?.click();
   };
 
   if (loadingMessages)
@@ -101,39 +142,50 @@ export default function ChatOperador() {
       </div>
     );
   return (
-    <div className="flex w-full h-screen">
-      <div className="bg-blue-400 flex-1 h-full">
-        <div className="flex flex-col h-screen p-6 bg-gray-100">
-          <div className="flex-1 overflow-y-auto flex flex-col-reverse scroll-hidden">
-            {loadingMessages ? (
-              <div className="h-full">
-                <Loading />
-              </div>
-            ) : (
-              messages.map((message) => (
-                <Message
-                  key={message.id_mensagem}
-                  message={message}
-                  isCurrentUser={message.remetente === "OPERADOR"}
-                />
-              ))
-            )}
-          </div>
-          <div className="mt-4 gap-2 flex flex-row">
-            <input
-              type="text"
-              placeholder="Mensagem"
-              className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              onChange={(e) => setMensagem(e.target.value)}
-              value={mensagem}
+    <div className="bg-blue-400 flex-[4] h-full">
+      <div className="flex flex-col h-screen p-6 bg-gray-100">
+        <div
+          ref={containerRef}
+          className="flex-1 overflow-y-auto scroll-hidden"
+        >
+          {messages.map((message) => (
+            <Message
+              key={message.id_mensagem}
+              message={message}
+              isCurrentUser={message.remetente === "OPERADOR"}
+              call={call?.chamado!}
+              nomeLogado={nomeOperador}
             />
-            <Button className="h-full bg-blue-400">
-              <ClipboardIcon />
-            </Button>
-            <Button className="h-full" onClick={handleSubmitMessage}>
-              <SendIcon />
-            </Button>
-          </div>
+          ))}
+        </div>
+        <div className="mt-4 gap-2 flex flex-row">
+          <input
+            ref={inputRef}
+            type="text"
+            placeholder="Type a message"
+            className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+          />
+          <Button className="h-full bg-blue-400" onClick={handleOpenFilePicker}>
+            <ClipboardIcon />
+          </Button>
+          <Button className="h-full" onClick={handleSendMessage}>
+            <SendIcon />
+          </Button>
+          <input
+            type="file"
+            accept="image/*"
+            ref={fileInputRef}
+            onChange={handleImageChange}
+            className="hidden"
+          />
+          <ImagePreviewModal
+            open={modalOpen}
+            onClose={() => setModalOpen(false)}
+            imageUrl={imageUrl}
+          />
         </div>
       </div>
     </div>

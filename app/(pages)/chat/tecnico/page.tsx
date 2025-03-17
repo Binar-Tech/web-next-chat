@@ -8,6 +8,7 @@ import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ChamadosDto } from "../../home/_actions/api";
 import { fetchOpennedCals } from "../_actions/api";
+import { AcceptCallDto } from "../_actions/dtos/accept-call.dto";
 import { CreateMessageDto } from "../_actions/dtos/create-message.dto";
 import { MessageDto } from "../_actions/dtos/message-dto";
 import ChatList from "../_components/chat-list";
@@ -24,6 +25,7 @@ export default function ChatTecnico() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedChatId, setSelectedChatId] = useState<number>(0);
+  const [selectedChat, setSelectedChat] = useState<ChamadosDto>();
   const selectedChatIdRef = useRef(selectedChatId);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -35,12 +37,11 @@ export default function ChatTecnico() {
   const [message, setMessage] = useState("");
 
   // 🔥 useCallback para evitar recriação desnecessária da função
-  //ela será responsavel para tratar novas mensagens
+  // ela será responsavel para tratar novas mensagens
   const handleNewMessage = useCallback(
     (message: MessageDto) => {
       //verifica se o chat selecionado é igual ao da mensagem que veio, para atualizar na tela
-      console.log("message: ", message);
-      console.log("chat selecionado: ", selectedChatIdRef.current);
+
       if (message.id_chamado === selectedChatIdRef.current) {
         setMessages((prev) => [...prev, message]);
       }
@@ -54,7 +55,10 @@ export default function ChatTecnico() {
 
         let updatedCall: ChamadosDto | null = null;
         const otherCalls = prevCalls.filter((call) => {
-          if (call.tecnico_responsavel === idTecnico) {
+          if (
+            call.tecnico_responsavel === idTecnico &&
+            call.id_chamado !== selectedChatIdRef.current
+          ) {
             updatedCall = {
               ...call,
               unread_messages: call.unread_messages
@@ -85,7 +89,7 @@ export default function ChatTecnico() {
   // 🔥 Conecta o socket apenas uma vez e adiciona/remover eventos corretamente
   useEffect(() => {
     //connectSocket();
-
+    eventManager.on("connect", loginSocket);
     eventManager.on("new-message", handleNewMessage);
     eventManager.on("call-updated", onCallUpdated);
     eventManager.on("call-closed", onCallClosed);
@@ -93,8 +97,9 @@ export default function ChatTecnico() {
     fetchData();
 
     return () => {
+      eventManager.off("connect", loginSocket);
       eventManager.off("new-message", handleNewMessage);
-      eventManager.off("call-updated", onCallUpdated);
+      eventManager.off("chat-accepted", onCallUpdated);
       eventManager.off("call-closed", onCallClosed);
 
       //socketService.disconnect();
@@ -102,12 +107,30 @@ export default function ChatTecnico() {
   }, [handleNewMessage, onCallUpdated, onCallClosed]);
 
   useEffect(() => {
-    connectSocket();
+    try {
+      socketService.connect();
+    } catch (error) {}
 
     return () => {
       socketService.disconnect();
     };
   }, []);
+
+  // Sempre que o estado mudar, atualiza o ref
+  useEffect(() => {
+    selectedChatIdRef.current = selectedChatId;
+    console.log("atualizou o estado: ", selectedChatId);
+  }, [selectedChatId]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const scrollToBottom = () => {
+    if (containerRef.current) {
+      containerRef.current.scrollTop = containerRef.current.scrollHeight;
+    }
+  };
 
   //carrega todos os chats abertos
   const fetchData = async () => {
@@ -120,17 +143,6 @@ export default function ChatTecnico() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const connectSocket = async () => {
-    try {
-      socketService.connect();
-      await loginSocket();
-    } catch (error) {}
-
-    return () => {
-      socketService.disconnect();
-    };
   };
 
   const loginSocket = async () => {
@@ -155,6 +167,9 @@ export default function ChatTecnico() {
       //setLoadingMessages(false);
     }
 
+    const resultCall = calls?.find((cal) => cal.id_chamado === chatId);
+    setSelectedChat(resultCall);
+
     // Atualiza a call correspondente para unread_messages = 0
     setCalls((prevCalls) => {
       if (!prevCalls) return prevCalls;
@@ -165,11 +180,13 @@ export default function ChatTecnico() {
     });
   };
 
-  // Sempre que o estado mudar, atualiza o ref
-  useEffect(() => {
-    selectedChatIdRef.current = selectedChatId;
-    console.log("atualizou o estado: ", selectedChatId);
-  }, [selectedChatId]);
+  const handleAcceptCall = async (idChamado: number) => {
+    const accetpCall: AcceptCallDto = {
+      chatId: idChamado,
+      technicianId: idTecnico!,
+      technicianName: nomeTecnico!,
+    };
+  };
 
   const handleOpenFilePicker = () => {
     fileInputRef.current?.click();
@@ -183,16 +200,6 @@ export default function ChatTecnico() {
       const localUrl = URL.createObjectURL(file);
       setImageUrl(localUrl);
       setModalOpen(true); // Abrir o modal automaticamente
-    }
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  const scrollToBottom = () => {
-    if (containerRef.current) {
-      containerRef.current.scrollTop = containerRef.current.scrollHeight;
     }
   };
 
@@ -254,9 +261,11 @@ export default function ChatTecnico() {
             ) : (
               messages.map((message) => (
                 <Message
+                  call={selectedChat!}
                   key={message.id_mensagem}
                   message={message}
                   isCurrentUser={message.remetente === "TECNICO"}
+                  nomeLogado={nomeTecnico!}
                 />
               ))
             )}
@@ -267,6 +276,7 @@ export default function ChatTecnico() {
               type="text"
               placeholder="Type a message"
               className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={message}
               onChange={(e) => setMessage(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
             />

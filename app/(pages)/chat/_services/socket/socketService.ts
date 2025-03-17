@@ -15,10 +15,14 @@ class SocketService {
 
     this.client.on("connect", () => eventManager.emit("connect"));
     this.client.on("disconnect", () => eventManager.emit("disconnect"));
+    this.client.on("reconnect", () => eventManager.emit("reconnect"));
     this.client.on("new-message", (message) =>
       eventManager.emit("new-message", message)
     );
-    this.client.on("callUpdate", (call) =>
+    this.client.on("accept-call", (message) =>
+      eventManager.emit("accept-call", message)
+    );
+    this.client.on("call-accepted", (call) =>
       eventManager.emit("callUpdate", call)
     );
     this.client.on("logged", (logged) => eventManager.emit("logged", logged));

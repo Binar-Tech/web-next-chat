@@ -21,6 +21,9 @@ export class SocketClient {
       this.socket.on("error", (error: any) =>
         console.error("⚠️ Erro no WebSocket:", error)
       );
+      this.socket.on("reconnect", () =>
+        console.error("⚠️WebSicket Reconectado:")
+      );
     }
   }
 

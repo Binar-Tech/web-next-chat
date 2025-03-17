@@ -1,9 +1,9 @@
+import { ChamadosDto } from "@/app/(pages)/home/_actions/api";
 import { CallUser } from "./call-user.intarface";
-import { ReturnChamadoDto } from "./returnChamado.dto";
 import { User } from "./user.interface";
 
 export interface Call {
-  chamado: ReturnChamadoDto;
+  chamado: ChamadosDto;
   clientSocket?: User;
   technicianSockets?: CallUser[];
 }
