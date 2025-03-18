@@ -4,11 +4,12 @@ import Message from "@/app/(pages)/chat/_components/message";
 import { Button } from "@/app/_components/ui/button";
 import { ClipboardIcon, SendIcon } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { MessageDto } from "../_actions/dtos/message-dto";
 
 import { Call } from "../_actions/dtos/call.interface";
 import { CreateMessageDto } from "../_actions/dtos/create-message.dto";
+import { ReturnChamadoDto } from "../_actions/dtos/returnChamado.dto";
 import ImagePreviewModal from "../_components/image-preview-modal";
 import { useChatMessages } from "../_hooks/useChatMessages";
 import { PerfilEnum } from "../_services/enums/perfil.enum";
@@ -30,6 +31,37 @@ export default function ChatOperador() {
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  const onCallUpdated = useCallback((data: ReturnChamadoDto) => {
+    //cria uma mensagem de sistema para notificar o operador
+    console.log("chamado aceito: ", data);
+    const message: MessageDto = {
+      caminho_arquivo_ftp: "",
+      data: new Date().toISOString(),
+      id_chamado: data.id_chamado,
+      mensagem: `Você será atendido pelo analista ${data.nome_tecnico}`,
+      id_mensagem: 1231213123123,
+      id_tecnico: "21312312",
+      nome_arquivo: "",
+      remetente: "",
+      tecnico_responsavel: data.tecnico_responsavel!,
+      nome_tecnico: data.nome_tecnico,
+      system_message: true,
+    };
+    setMessages((prev) => {
+      const updatedMessages = [...prev, message]; // Adiciona a mensagem no início
+      return updatedMessages;
+    });
+    console.log("call accepted");
+  }, []);
+
+  const onEnteredCall = useCallback((data: any) => {
+    console.log("entrou na call: ", data);
+  }, []);
+
+  const onLeaveCall = useCallback((data: any) => {
+    console.log("entrou na call: ", data);
+  }, []);
+
   useEffect(() => {
     // Criamos a função separadamente para poder referenciá-la depois
     const handleNewMessage = (message: MessageDto) => {
@@ -49,11 +81,17 @@ export default function ChatOperador() {
     eventManager.on("connect", loginSocket);
     eventManager.on("new-message", handleNewMessage);
     eventManager.on("logged", handleLogged);
+    eventManager.on("accepted-call", onCallUpdated);
+    eventManager.on("entered-call", onEnteredCall);
+    eventManager.on("leave-call", onLeaveCall);
 
     return () => {
       eventManager.off("connect", loginSocket);
       eventManager.off("new-message", handleNewMessage); // Removemos corretamente o listener
       eventManager.off("logged", handleLogged);
+      eventManager.off("accepted-call", onCallUpdated);
+      eventManager.off("entered-call", onEnteredCall);
+      eventManager.off("leave-call", onLeaveCall);
     };
   }, []);
 

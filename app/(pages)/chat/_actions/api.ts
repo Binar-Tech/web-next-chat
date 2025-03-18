@@ -1,6 +1,6 @@
 "use server";
 
-import { ChamadosDto } from "../../home/_actions/api";
+import { ChamadosDto } from "./dtos/chamado.dto";
 import { MessageDto } from "./dtos/message-dto";
 
 export async function fetchOpennedCals(): Promise<ChamadosDto[]> {

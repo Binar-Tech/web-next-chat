@@ -8,4 +8,6 @@ export interface MessageDto {
   remetente: string;
   id_tecnico: string;
   tecnico_responsavel: string;
+  nome_tecnico?: string;
+  system_message?: boolean;
 }

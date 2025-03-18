@@ -1,4 +1,6 @@
-export interface ReturnChamadoDto {
+import { EmpresaDto } from "./empresa.dto";
+
+export interface ChamadosDto {
   id_chamado: number;
   tecnico_responsavel: string;
   cnpj_operador: string;
@@ -10,5 +12,6 @@ export interface ReturnChamadoDto {
   status: string;
   link_operador: string;
   id_ticket: string;
-  nome_tecnico?: string;
+  empresa: EmpresaDto;
+  unread_messages: number;
 }

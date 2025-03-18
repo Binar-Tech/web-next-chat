@@ -1,11 +1,12 @@
 import { Button } from "@/app/_components/ui/button";
-import { ChamadosDto } from "../../home/_actions/api";
+import { ChamadosDto } from "../_actions/dtos/chamado.dto";
 
 interface ChatItemProps {
   chamado: ChamadosDto;
   unreadCount: number;
   isSelected: boolean;
   onSelect: (chatId: number) => void;
+  onAcceptCall: (chatId: number) => void;
 }
 
 export default function ChatItem({
@@ -13,6 +14,7 @@ export default function ChatItem({
   unreadCount,
   isSelected,
   onSelect,
+  onAcceptCall,
 }: ChatItemProps) {
   return (
     <div
@@ -26,7 +28,10 @@ export default function ChatItem({
         <p className="text-sm text-gray-500">{chamado.contato}</p>
 
         {chamado.tecnico_responsavel === null && (
-          <Button className="bg-blue-400 h-8 self-end hover:bg-orange-400">
+          <Button
+            className="bg-blue-400 h-8 self-end hover:bg-orange-400"
+            onClick={() => onAcceptCall(chamado.id_chamado)}
+          >
             Atender
           </Button>
         )}

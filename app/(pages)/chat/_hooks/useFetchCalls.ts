@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { ChamadosDto } from "../../home/_actions/api";
 import { fetchOpennedCals } from "../_actions/api";
+import { ChamadosDto } from "../_actions/dtos/chamado.dto";
 
 export function useFetchCalls() {
   const [data, setData] = useState<ChamadosDto[] | null>(null);

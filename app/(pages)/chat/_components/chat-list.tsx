@@ -1,5 +1,6 @@
 import { Accordion } from "@/app/_components/ui/accordion";
-import { ChamadosDto } from "../../home/_actions/api";
+
+import { ChamadosDto } from "../_actions/dtos/chamado.dto";
 import ChatAccordionSection from "./accordion-item";
 
 interface ChatListProps {
@@ -7,6 +8,7 @@ interface ChatListProps {
   selectedChatId: number | null;
   idUserLogged: string;
   onSelect: (chatId: number) => void;
+  onAcceptCall: (chatId: number) => void;
 }
 
 export default function ChatList({
@@ -14,6 +16,7 @@ export default function ChatList({
   selectedChatId,
   idUserLogged,
   onSelect,
+  onAcceptCall,
 }: ChatListProps) {
   const chatsAbertos = chatList.filter(
     (call) => call.tecnico_responsavel === null
@@ -48,6 +51,7 @@ export default function ChatList({
             chats={chatsAbertos}
             selectedChatId={selectedChatId}
             onSelect={onSelect}
+            onAcceptCall={onAcceptCall}
           />
           <ChatAccordionSection
             title="Meus Chats"
@@ -55,6 +59,7 @@ export default function ChatList({
             chats={meusChats}
             selectedChatId={selectedChatId}
             onSelect={onSelect}
+            onAcceptCall={onAcceptCall}
           />
           <ChatAccordionSection
             title="Outros Chats"
@@ -62,6 +67,7 @@ export default function ChatList({
             chats={outrosChats}
             selectedChatId={selectedChatId}
             onSelect={onSelect}
+            onAcceptCall={onAcceptCall}
           />
         </Accordion>
       </div>

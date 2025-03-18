@@ -11,6 +11,7 @@ interface ChatAccordionSectionProps {
   chats: any[]; // Tipar corretamente se houver uma interface específica
   selectedChatId: number | null;
   onSelect: (chatId: number) => void;
+  onAcceptCall: (chatId: number) => void;
 }
 
 export default function ChatAccordionSection({
@@ -19,6 +20,7 @@ export default function ChatAccordionSection({
   chats,
   selectedChatId,
   onSelect,
+  onAcceptCall,
 }: ChatAccordionSectionProps) {
   return (
     <AccordionItem
@@ -39,6 +41,7 @@ export default function ChatAccordionSection({
             }`}
           >
             <ChatItem
+              onAcceptCall={() => onAcceptCall(call.id_chamado)}
               key={call.id_chamado}
               chamado={call}
               unreadCount={call.unread_messages}
