@@ -5,8 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import { ChamadosDto } from "../_actions/dtos/chamado.dto";
 import { MessageDto } from "../_actions/dtos/message-dto";
 import { PerfilEnum } from "../_services/enums/perfil.enum";
+import ImageBox from "./image-box";
 import ImageModal from "./image-modal";
-import Loading from "./loading";
 
 interface MessageProps {
   message: MessageDto;
@@ -155,27 +155,17 @@ export default function Message({
 
             {/* Se for uma imagem */}
             {fileType === "imagem" && (
-              <div ref={imageRef}>
-                {!isVisible ? (
-                  // Ícone de loading enquanto a imagem não é carregada
-                  <div className="flex items-center justify-center w-full h-full bg-gray-200 rounded-lg">
-                    <Loading />
-                  </div>
-                ) : (
-                  <img
-                    src={getFileUrl()}
-                    alt="Imagem enviada"
-                    className="w-full h-full object-cover rounded-lg cursor-pointer"
-                    onClick={() => setModalOpen(true)}
-                  />
-                )}
-              </div>
+              <ImageBox
+                onClickImage={() => setModalOpen(true)}
+                key={message.id_mensagem}
+                src={getFileUrl()}
+              />
             )}
 
             {/* Se for um vídeo */}
             {fileType === "video" && (
-              <div className="max-w-xs">
-                <video controls className="max-w-full rounded-lg">
+              <div className="w-[250px] h-[440px] ">
+                <video controls className="w-full h-full rounded-lg">
                   <source src={getFileUrl()} type="video/mp4" />
                   Seu navegador não suporta vídeos.
                 </video>

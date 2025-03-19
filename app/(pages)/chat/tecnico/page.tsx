@@ -6,7 +6,7 @@ import { Button } from "@/app/_components/ui/button";
 import { ClipboardIcon, SendIcon } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { fetchOpennedCals } from "../_actions/api";
+import { closeCall, fetchOpennedCals } from "../_actions/api";
 import { AcceptCallDto } from "../_actions/dtos/accept-call.dto";
 import { ChamadosDto } from "../_actions/dtos/chamado.dto";
 import { CreateMessageDto } from "../_actions/dtos/create-message.dto";
@@ -16,6 +16,7 @@ import { RoleEnum } from "../_actions/enums/role.enum";
 import ChatList from "../_components/chat-list";
 import ChatSidebar from "../_components/chat-navbar";
 import { useChatMessages } from "../_hooks/useChatMessages";
+import { dropdownEventEmitter } from "../_services/dropdown-event/dropdown-event-emitter";
 import { PerfilEnum } from "../_services/enums/perfil.enum";
 import { eventManager } from "../_services/socket/eventManager";
 import { socketService } from "../_services/socket/socketService";
@@ -58,7 +59,9 @@ export default function ChatTecnico() {
       const updatedCalls = prevCalls.map((call) => {
         if (
           call.tecnico_responsavel === idTecnico &&
-          call.id_chamado !== selectedChatIdRef.current
+          (call.id_chamado !== selectedChatIdRef.current ||
+            call.tecnico_responsavel == null) &&
+          call.id_chamado === message.id_chamado
         ) {
           console.log("call atualizado: ", call);
           console.log("selectedChatIdRef: ", selectedChatIdRef.current);
@@ -89,8 +92,16 @@ export default function ChatTecnico() {
   }, []);
 
   //quando o tecnico fecha um chamado
-  const onCallClosed = useCallback((data: { id: number }) => {
-    setCalls((prev) => prev?.filter((c) => c.id_chamado !== data.id) || []);
+  const onCallClosed = useCallback((data: ChamadosDto) => {
+    if (selectedChatIdRef.current === data.id_chamado) {
+      console.log("LIMPANDO MENSAGENS");
+      setMessages(() => []);
+    }
+    setSelectedChatId(0);
+    setSelectedChat(undefined);
+    setCalls(
+      (prev) => prev?.filter((c) => c.id_chamado !== data.id_chamado) || []
+    );
   }, []);
 
   const onEnteredCall = useCallback((data: any) => {
@@ -101,22 +112,28 @@ export default function ChatTecnico() {
     console.log("saiu da call: ", data);
   }, []);
 
+  const onCallOpen = useCallback((data: any) => {
+    console.log("abriu uma noca chamada: ", data);
+  }, []);
+
   // 🔥 Conecta o socket apenas uma vez e adiciona/remover eventos corretamente
   useEffect(() => {
     //connectSocket();
     eventManager.on("connect", loginSocket);
+    eventManager.on("open-call", onCallOpen);
     eventManager.on("new-message", handleNewMessage);
     eventManager.on("accepted-call", onCallUpdated);
-    eventManager.on("call-closed", onCallClosed);
+    eventManager.on("closed-call", onCallClosed);
     eventManager.on("entered-call", onEnteredCall);
     eventManager.on("leaved-call", onLeaveCall);
     fetchData();
 
     return () => {
       eventManager.off("connect", loginSocket);
+      eventManager.off("open-call", onCallOpen);
       eventManager.off("new-message", handleNewMessage);
       eventManager.off("accepted-call", onCallUpdated);
-      eventManager.off("call-closed", onCallClosed);
+      eventManager.off("closed-call", onCallClosed);
       eventManager.off("entered-call", onEnteredCall);
       eventManager.off("leaved-call", onLeaveCall);
 
@@ -146,6 +163,37 @@ export default function ChatTecnico() {
   const scrollToBottom = () => {
     if (containerRef.current) {
       containerRef.current.scrollTop = containerRef.current.scrollHeight;
+    }
+  };
+
+  useEffect(() => {
+    dropdownEventEmitter.on("dropdownOpcoesClick", handleDropdownClick);
+
+    return () => {
+      dropdownEventEmitter.off("dropdownOpcoesClick", handleDropdownClick);
+    };
+  }, []);
+
+  const handleDropdownClick = async (action: string) => {
+    console.log(`Botão clicado: ${action}`);
+    console.log(`chat selecionado: `, selectedChat);
+    console.log(`chat selecionado: `, selectedChatId);
+    console.log(`chat selecionado: `, selectedChatIdRef.current);
+    switch (action) {
+      case "encerrar":
+        await closeCall(selectedChatIdRef.current);
+        break;
+      case "encerrarOffTicket":
+        break;
+      case "entrar":
+        enterCall(selectedChatId, RoleEnum.SUPPORT);
+        break;
+      case "sair":
+        leaveCall(selectedChatId);
+        break;
+
+      default:
+        break;
     }
   };
 
@@ -267,9 +315,9 @@ export default function ChatTecnico() {
       </div>
     );
   return (
-    <div className="flex w-full h-screen">
-      {/* Lado esquerdo - 20% da largura total */}
-      <div className=" flex-[1] min-w-72 flex flex-col">
+    <div className="flex w-full h-screen overflow-hidden">
+      {/* Lado esquerdo - Lista de Chats */}
+      <div className="flex-[1] min-w-72 flex flex-col overflow-hidden">
         <ChatList
           onAcceptCall={handleAcceptCall}
           idUserLogged={idTecnico!}
@@ -279,12 +327,11 @@ export default function ChatTecnico() {
         />
       </div>
 
-      {/* Lado direito - 80% da largura total contendo as mensagens */}
-      <div className="bg-blue-400 flex-[4] flex flex-col">
-        {/* ChatSidebar - Não deve ocupar mais espaço do que o necessário */}
-        <ChatSidebar chat={selectedChat} />
+      {/* Lado direito - Chat */}
+      <div className="bg-blue-400 flex-[4] flex flex-col overflow-hidden">
+        <ChatSidebar chat={selectedChat} idTecnico={idTecnico!} />
 
-        {/* Container de mensagens sem scroll extra */}
+        {/* Container de mensagens */}
         <div className="flex flex-col flex-1 p-6 bg-gray-100 overflow-hidden">
           <div
             ref={containerRef}

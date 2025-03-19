@@ -3,7 +3,7 @@ import Loading from "@/app/(pages)/chat/_components/loading";
 import Message from "@/app/(pages)/chat/_components/message";
 import { Button } from "@/app/_components/ui/button";
 import { ClipboardIcon, SendIcon } from "lucide-react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MessageDto } from "../_actions/dtos/message-dto";
 
@@ -30,6 +30,7 @@ export default function ChatOperador() {
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const router = useRouter();
 
   const onCallUpdated = useCallback((data: ReturnChamadoDto) => {
     //cria uma mensagem de sistema para notificar o operador
@@ -62,6 +63,13 @@ export default function ChatOperador() {
     console.log("entrou na call: ", data);
   }, []);
 
+  const onCallClosed = useCallback((data: { id: number }) => {
+    console.log("CALL CLOSED");
+    router.replace(
+      `/home?cnpj=${cnpj}&nomeOperador=${nomeOperador}&idOperador=${idOperador}`
+    );
+  }, []);
+
   useEffect(() => {
     // Criamos a função separadamente para poder referenciá-la depois
     const handleNewMessage = (message: MessageDto) => {
@@ -84,6 +92,7 @@ export default function ChatOperador() {
     eventManager.on("accepted-call", onCallUpdated);
     eventManager.on("entered-call", onEnteredCall);
     eventManager.on("leave-call", onLeaveCall);
+    eventManager.on("closed-call", onCallClosed);
 
     return () => {
       eventManager.off("connect", loginSocket);
@@ -92,6 +101,7 @@ export default function ChatOperador() {
       eventManager.off("accepted-call", onCallUpdated);
       eventManager.off("entered-call", onEnteredCall);
       eventManager.off("leave-call", onLeaveCall);
+      eventManager.off("closed-call", onCallClosed);
     };
   }, []);
 
