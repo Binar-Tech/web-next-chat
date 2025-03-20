@@ -81,9 +81,15 @@ export default function ChatOperador() {
     };
 
     const handleLogged = async (call: Call) => {
-      const { chamado } = call;
-      setCall(call);
-      await fetchMessages(call.chamado.id_chamado, 1, 99999);
+      console.log("call:", call);
+      if (call) {
+        setCall(call);
+        await fetchMessages(call.chamado.id_chamado, 1, 99999);
+      } else {
+        router.replace(
+          `/home?cnpj=${cnpj}&nomeOperador=${nomeOperador}&idOperador=${idOperador}`
+        );
+      }
     };
 
     eventManager.on("connect", loginSocket);

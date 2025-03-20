@@ -21,24 +21,19 @@ class SocketService {
     this.client.on("new-message", (message) =>
       eventManager.emit("new-message", message)
     );
-
     this.client.on("accepted-call", (call) =>
       eventManager.emit("accepted-call", call)
-    );
-    this.client.on("accepted-call", (call) =>
-      eventManager.emit("open-call", call)
     );
     this.client.on("entered-call", (call) =>
       eventManager.emit("entered-call", call)
     );
-
     this.client.on("leaved-call", (call) =>
       eventManager.emit("leaved-call", call)
     );
-
     this.client.on("closed-call", (call) =>
       eventManager.emit("closed-call", call)
     );
+    this.client.on("open-call", (call) => eventManager.emit("open-call", call));
     this.client.on("logged", (logged) => eventManager.emit("logged", logged));
   }
 

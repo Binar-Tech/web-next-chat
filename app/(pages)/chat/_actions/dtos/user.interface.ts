@@ -1,4 +1,4 @@
-import { PerfilEnum } from '../enums/perfil.enum';
+import { PerfilEnum } from "../../_services/enums/perfil.enum";
 
 export interface User {
   nome: string;

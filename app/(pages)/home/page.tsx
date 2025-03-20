@@ -18,8 +18,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import * as yup from "yup";
-import { fetchCallByIdOperadorAndCnpj } from "../chat/_actions/api";
+
 import { ChamadosDto } from "../chat/_actions/dtos/chamado.dto";
+import { createChamado, fetchCallByIdOperadorAndCnpj } from "./_actions/api";
+import { CreateChamadoDto } from "./_actions/dtos/create-chamado.dto";
 
 const schema = yup.object().shape({
   contato: yup
@@ -38,6 +40,7 @@ export default function Home() {
   const cnpj = searchParams.get("cnpj");
   const idOperador = searchParams.get("idOperador");
   const nomeOperador = searchParams.get("nomeOperador");
+  const linkOperador = searchParams.get("linkOperador");
   const [chamado, setChamado] = useState<ChamadosDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -46,11 +49,11 @@ export default function Home() {
 
   useEffect(() => {
     if (cnpj && idOperador) {
-      fetchData();
+      handleLogin();
     }
   }, [cnpj, idOperador]);
 
-  const fetchData = async () => {
+  const handleLogin = async () => {
     try {
       // Chama a função do servidor passando os parâmetros
 
@@ -112,11 +115,27 @@ export default function Home() {
   async function onSubmit(data: any) {
     setIsLoading(true); // Ativa o loading
     console.log("Form enviado:", data);
+    const chamado: CreateChamadoDto = {
+      nome_operador: nomeOperador!, // Nome do operador
+      cnpj_operador: cnpj!, // CNPJ do operador
+      contato: data.contato, // Contato do cliente
+      link_operador: linkOperador || "", // Link do operador
+      id_operador: idOperador!, // ID do operador
+    };
 
-    // Simula um delay (exemplo: chamada a API)
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-
-    setIsLoading(false); // Desativa o loading
+    // Chama a função do servidor passando os parâmetros
+    try {
+      const result = await createChamado(chamado);
+      if (result) {
+        router.push(
+          `/chat/operador?cnpj=${cnpj}&nomeOperador=${nomeOperador}&idOperador=${idOperador}&novoChamado=true`
+        );
+      }
+    } catch (error) {
+      console.log("Erro ao criar chamado", error);
+    } finally {
+      setIsLoading(false);
+    }
   }
   return (
     <div className="flex items-center justify-center h-screen p-4 sm:p-10">
@@ -140,7 +159,7 @@ export default function Home() {
                   <div className="grid w-full items-center gap-4">
                     {/* Nome do Operador */}
                     <div className="flex flex-col space-y-1.5">
-                      <Label htmlFor="nome">Nome</Label>
+                      <Label htmlFor="nome">Nome operador</Label>
                       <Input id="nome" disabled value={nomeOperador!} />
                     </div>
 

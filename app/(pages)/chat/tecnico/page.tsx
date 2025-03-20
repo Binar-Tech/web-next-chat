@@ -6,7 +6,11 @@ import { Button } from "@/app/_components/ui/button";
 import { ClipboardIcon, SendIcon } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { closeCall, fetchOpennedCals } from "../_actions/api";
+import {
+  closeCall,
+  closeCallWithoutTicket,
+  fetchOpennedCals,
+} from "../_actions/api";
 import { AcceptCallDto } from "../_actions/dtos/accept-call.dto";
 import { ChamadosDto } from "../_actions/dtos/chamado.dto";
 import { CreateMessageDto } from "../_actions/dtos/create-message.dto";
@@ -112,8 +116,39 @@ export default function ChatTecnico() {
     console.log("saiu da call: ", data);
   }, []);
 
-  const onCallOpen = useCallback((data: any) => {
-    console.log("abriu uma noca chamada: ", data);
+  const onCallOpen = useCallback((data: ChamadosDto) => {
+    const playSound = () => {
+      const notificationSound = new Audio("/notify-new-call.mp3");
+      notificationSound
+        .play()
+        .catch((error) => console.error("Erro ao tocar som:", error));
+    };
+
+    if (document.hidden) {
+      // Se a aba não estiver visível, mostra uma notificação
+      if (Notification.permission === "granted") {
+        const notification = new Notification("Nova chamada recebida!", {
+          body: "Clique para abrir o chat",
+          icon: "/notification-icon.png",
+        });
+
+        // Toca o som ao clicar na notificação
+        notification.onclick = () => {
+          window.focus();
+          playSound();
+        };
+      }
+    }
+    //playSound();
+    window.parent.postMessage({ type: "NEW_CALL_NOTIFICATION" }, "*");
+
+    setCalls((prev) => {
+      const newCall: ChamadosDto = {
+        ...data,
+        unread_messages: 0,
+      };
+      return prev ? [...prev, newCall] : [newCall];
+    });
   }, []);
 
   // 🔥 Conecta o socket apenas uma vez e adiciona/remover eventos corretamente
@@ -184,6 +219,7 @@ export default function ChatTecnico() {
         await closeCall(selectedChatIdRef.current);
         break;
       case "encerrarOffTicket":
+        await closeCallWithoutTicket(selectedChatIdRef.current);
         break;
       case "entrar":
         enterCall(selectedChatId, RoleEnum.SUPPORT);
