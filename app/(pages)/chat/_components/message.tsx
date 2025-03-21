@@ -1,6 +1,6 @@
 "use client";
 
-import formatDate from "@/app/_utils/data";
+import { formatDate } from "@/app/_utils/data";
 import { useEffect, useRef, useState } from "react";
 import { ChamadosDto } from "../_actions/dtos/chamado.dto";
 import { MessageDto } from "../_actions/dtos/message-dto";

@@ -1,4 +1,4 @@
-export default function formatDate(dateString: string) {
+export function formatDate(dateString: string) {
   const date = new Date(dateString);
   const dateNow = new Date();
 
@@ -26,6 +26,15 @@ export default function formatDate(dateString: string) {
       hour12: false,
     })
     .replace(",", "");
+}
+
+export function formatDateTimeToDate(dateString: string) {
+  const date = new Date(dateString);
+  return date.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "2-digit",
+  });
 }
 
 // Saída: "24/10/24 16:51"

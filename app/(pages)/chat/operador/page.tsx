@@ -7,9 +7,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MessageDto } from "../_actions/dtos/message-dto";
 
+import { formatDateTimeToDate } from "@/app/_utils/data";
 import { Call } from "../_actions/dtos/call.interface";
 import { CreateMessageDto } from "../_actions/dtos/create-message.dto";
 import { ReturnChamadoDto } from "../_actions/dtos/returnChamado.dto";
+import NewMessageButton from "../_components/float-buttom-messages";
 import ImagePreviewModal from "../_components/image-preview-modal";
 import { useChatMessages } from "../_hooks/useChatMessages";
 import { PerfilEnum } from "../_services/enums/perfil.enum";
@@ -21,16 +23,40 @@ export default function ChatOperador() {
   const nomeOperador = searchParams.get("nomeOperador") || "";
   const idOperador = searchParams.get("idOperador") || "";
   const cnpj = searchParams.get("cnpj") ?? null;
-  const { messages, setMessages, loadingMessages, fetchMessages, error } =
-    useChatMessages();
+
+  const [isAtBottom, setIsAtBottom] = useState(true);
+  const [showNewMessageButton, setShowNewMessageButton] = useState(false);
+  const [showNewMessageButtonText, setShowNewMessageButtonText] = useState("");
+  const [lastMessageId, setLastMessageId] = useState<number | null>(null);
+  const [hasMoreMessages, setHasMoreMessages] = useState(true);
+  const [firstLoad, setFirstLoad] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [call, setCall] = useState<Call | null>(null);
   const [message, setMessage] = useState<string>("");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const {
+    messages,
+    setMessages,
+    loadingMessages,
+    loadingMoreMessages,
+    fetchMessages,
+    fetchMoreMessages,
+    error,
+  } = useChatMessages();
+
   const router = useRouter();
+
+  const handleNewMessage = useCallback((message: MessageDto) => {
+    console.log("message: ", message);
+    setMessages((prev) => {
+      const updatedMessages = [...prev, message]; // Adiciona a mensagem no início
+      return updatedMessages;
+    });
+  }, []);
 
   const onCallUpdated = useCallback((data: ReturnChamadoDto) => {
     //cria uma mensagem de sistema para notificar o operador
@@ -70,27 +96,28 @@ export default function ChatOperador() {
     );
   }, []);
 
-  useEffect(() => {
-    // Criamos a função separadamente para poder referenciá-la depois
-    const handleNewMessage = (message: MessageDto) => {
-      console.log("message: ", message);
-      setMessages((prev) => {
-        const updatedMessages = [...prev, message]; // Adiciona a mensagem no início
-        return updatedMessages;
-      });
-    };
-
-    const handleLogged = async (call: Call) => {
-      console.log("call:", call);
-      if (call) {
-        setCall(call);
-        await fetchMessages(call.chamado.id_chamado, 1, 99999);
-      } else {
-        router.replace(
-          `/home?cnpj=${cnpj}&nomeOperador=${nomeOperador}&idOperador=${idOperador}`
+  const handleLogged = useCallback(async (call: Call) => {
+    console.log("call:", call);
+    if (call) {
+      setCall(call);
+      const retorno = await fetchMessages(call.chamado.id_chamado, 1, 10);
+      if (retorno.length < 10) {
+        await fetchMoreMessages(
+          call.chamado.id_operador.toString(),
+          call.chamado.cnpj_operador,
+          retorno[0].id_mensagem,
+          10
         );
       }
-    };
+    } else {
+      router.replace(
+        `/home?cnpj=${cnpj}&nomeOperador=${nomeOperador}&idOperador=${idOperador}`
+      );
+    }
+  }, []);
+
+  useEffect(() => {
+    // Criamos a função separadamente para poder referenciá-la depois
 
     eventManager.on("connect", loginSocket);
     eventManager.on("new-message", handleNewMessage);
@@ -141,8 +168,34 @@ export default function ChatOperador() {
   };
 
   useEffect(() => {
-    scrollToBottom();
+    //scrollToBottom();
+
+    if (messages.length > 0 && firstLoad) {
+      setFirstLoad(false); // Apenas na primeira carga rola para o final
+      requestAnimationFrame(scrollToBottom);
+      setLastMessageId(messages[messages.length - 1].id_mensagem);
+    }
+
+    if (isAtBottom) {
+      scrollToBottom();
+    } else {
+      if (messages.length > 0) {
+        if (lastMessageId !== null) {
+          if (messages[messages.length - 1].id_mensagem > lastMessageId) {
+            setShowNewMessageButtonText("Novas mensagens");
+            setShowNewMessageButton(true);
+          } else {
+            setShowNewMessageButtonText("");
+            setShowNewMessageButton(true);
+          }
+        }
+
+        setLastMessageId(messages[messages.length - 1].id_mensagem);
+      }
+    }
   }, [messages]);
+
+  useEffect(() => {}, [setShowNewMessageButton]);
 
   const scrollToBottom = () => {
     if (containerRef.current) {
@@ -182,6 +235,76 @@ export default function ChatOperador() {
     fileInputRef.current?.click();
   };
 
+  const handleLoadMoreMessage = async () => {
+    if (containerRef.current) {
+      const { scrollTop } = containerRef.current;
+
+      if (scrollTop === 0 && !loadingMoreMessages && hasMoreMessages) {
+        console.log(
+          "ENTROU NO EFFECT PARA BUSCAR NOVAS MENSAGENS: ",
+          scrollTop
+        );
+        console.log("CHAT SELECIONADO: ", call?.chamado);
+
+        if (messages.length > 0) {
+          console.log("PRIMEIRA MENSAGEM: ", messages[0].id_mensagem);
+
+          // Chama fetchMoreMessages quando o usuário rolar para o topo
+          const moreMessages = await fetchMoreMessages(
+            call?.chamado.id_operador.toString() ?? "",
+            call?.chamado.cnpj_operador ?? "",
+            messages[0].id_mensagem,
+            10
+          );
+
+          console.log("MENASGENS: ", moreMessages);
+
+          if (moreMessages.length === 0 || moreMessages.length < 10) {
+            // Se não houver mais mensagens ou menos de 10 mensagens, não buscar mais
+            setHasMoreMessages(false);
+          }
+        }
+      }
+    }
+  };
+
+  const handleScroll = async () => {
+    if (!containerRef.current) return;
+
+    const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
+    const isBottom = scrollHeight - scrollTop === clientHeight;
+    console.log("isBottom", isBottom);
+    console.log("altura total", scrollHeight);
+    console.log("altura atual", scrollTop);
+    console.log("altura cliente", clientHeight);
+    console.log("altura - top", scrollHeight - scrollTop);
+    setIsAtBottom(isBottom);
+
+    if (isBottom) {
+      setShowNewMessageButton(false);
+    }
+    const altura = scrollHeight - scrollTop;
+
+    if (altura - clientHeight >= 300 && showNewMessageButton !== true) {
+      console.log("É MAIOR QUE 100");
+      setShowNewMessageButton(true);
+    }
+
+    if (containerRef.current.scrollTop === 0 && hasMoreMessages) {
+      const previousHeight = containerRef.current.scrollHeight; // Salva altura antes do carregamento
+
+      await handleLoadMoreMessage().then(() => {
+        requestAnimationFrame(() => {
+          if (containerRef.current) {
+            // Mantém a posição após adicionar mensagens
+            containerRef.current.scrollTop =
+              containerRef.current.scrollHeight - previousHeight;
+          }
+        });
+      });
+    }
+  };
+
   if (loadingMessages)
     return (
       <div className="h-full">
@@ -197,21 +320,71 @@ export default function ChatOperador() {
     );
   return (
     <div className="bg-blue-400 flex-[4] h-full">
-      <div className="flex flex-col h-screen p-6 bg-gray-100">
+      <div className="flex flex-col h-screen p-6 bg-gray-100 overflow-hidden">
         <div
           ref={containerRef}
+          onScroll={handleScroll}
           className="flex-1 overflow-y-auto scroll-hidden"
         >
-          {messages.map((message) => (
-            <Message
-              key={message.id_mensagem}
-              message={message}
-              isCurrentUser={message.remetente === "OPERADOR"}
-              call={call?.chamado!}
-              nomeLogado={nomeOperador}
-            />
-          ))}
+          {
+            messages.map((message, index) => {
+              const prevMessage = index > 0 ? messages[index - 1] : null;
+              const messageDate = formatDateTimeToDate(message.data); // Função para formatar a data (Ex: "12/03/2024")
+              const prevMessageDate = prevMessage
+                ? formatDateTimeToDate(prevMessage.data)
+                : null;
+
+              const isNewDate = prevMessageDate !== messageDate;
+              const isNewChamado =
+                prevMessage && prevMessage.id_chamado !== message.id_chamado;
+
+              return (
+                <div key={message.id_mensagem}>
+                  {/* Exibir divisor de chamado */}
+                  {isNewChamado && (
+                    <div className="flex justify-center my-4">
+                      <div className="bg-gray-300 text-gray-700 px-3 py-1 rounded-lg text-sm">
+                        Chamado #{message.id_chamado}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Exibir divisor de data */}
+                  {isNewDate && (
+                    <div className="flex justify-center my-4">
+                      <div className="bg-gray-200 text-gray-800 px-3 py-1 rounded-lg text-sm">
+                        {messageDate}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Exibir a mensagem normalmente */}
+                  <Message
+                    call={call?.chamado!}
+                    message={message}
+                    isCurrentUser={message.remetente === "OPERADOR"}
+                    nomeLogado={nomeOperador!}
+                  />
+                </div>
+              );
+            })
+            // messages.map((message) => (
+            //   <Message
+            //     key={message.id_mensagem}
+            //     message={message}
+            //     isCurrentUser={message.remetente === "OPERADOR"}
+            //     call={call?.chamado!}
+            //     nomeLogado={nomeOperador}
+            //   />
+            // ))
+          }
         </div>
+        {showNewMessageButton && (
+          <NewMessageButton
+            onClick={scrollToBottom}
+            text={showNewMessageButtonText}
+          />
+        )}
         <div className="mt-4 gap-2 flex flex-row">
           <input
             ref={inputRef}

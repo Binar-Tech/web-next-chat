@@ -3,6 +3,7 @@ import ImagePreviewModal from "@/app/(pages)/chat/_components/image-preview-moda
 import Loading from "@/app/(pages)/chat/_components/loading";
 import Message from "@/app/(pages)/chat/_components/message";
 import { Button } from "@/app/_components/ui/button";
+import { formatDateTimeToDate } from "@/app/_utils/data";
 import { ClipboardIcon, SendIcon } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -19,6 +20,7 @@ import { MessageDto } from "../_actions/dtos/message-dto";
 import { RoleEnum } from "../_actions/enums/role.enum";
 import ChatList from "../_components/chat-list";
 import ChatSidebar from "../_components/chat-navbar";
+import NewMessageButton from "../_components/float-buttom-messages";
 import { useChatMessages } from "../_hooks/useChatMessages";
 import { dropdownEventEmitter } from "../_services/dropdown-event/dropdown-event-emitter";
 import { PerfilEnum } from "../_services/enums/perfil.enum";
@@ -29,22 +31,37 @@ export default function ChatTecnico() {
   const searchParams = useSearchParams();
   const nomeTecnico = searchParams.get("nomeTecnico");
   const idTecnico = searchParams.get("idTecnico");
+
   const [calls, setCalls] = useState<ChamadosDto[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedChatId, setSelectedChatId] = useState<number>(0);
   const [selectedChat, setSelectedChat] = useState<ChamadosDto>();
-  const selectedChatIdRef = useRef(selectedChatId);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const { fetchMessages, loadingMessages, messages, setMessages } =
-    useChatMessages();
+  const [message, setMessage] = useState("");
+  const [hasMoreMessages, setHasMoreMessages] = useState(true);
+  const [firstLoad, setFirstLoad] = useState(true);
+  const [isAtBottom, setIsAtBottom] = useState(true);
+  const [showNewMessageButton, setShowNewMessageButton] = useState(false);
+  const [showNewMessageButtonText, setShowNewMessageButtonText] = useState("");
+  const [lastMessageId, setLastMessageId] = useState<number | null>(null);
+
+  const selectedChatIdRef = useRef(selectedChatId);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [message, setMessage] = useState("");
 
-  // 🔥 useCallback para evitar recriação desnecessária da função
+  const {
+    fetchMessages,
+    fetchMoreMessages,
+    loadingMessages,
+    loadingMoreMessages,
+    messages,
+    setMessages,
+  } = useChatMessages();
+
+  // useCallback para evitar recriação desnecessária da função
   // ela será responsavel para tratar novas mensagens
   const handleNewMessage = useCallback((message: MessageDto) => {
     //verifica se o chat selecionado é igual ao da mensagem que veio, para atualizar na tela
@@ -138,6 +155,8 @@ export default function ChatTecnico() {
           playSound();
         };
       }
+    } else {
+      playSound();
     }
     //playSound();
     window.parent.postMessage({ type: "NEW_CALL_NOTIFICATION" }, "*");
@@ -191,11 +210,9 @@ export default function ChatTecnico() {
     selectedChatIdRef.current = selectedChatId;
   }, [selectedChatId]);
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
+  //atualiza o scroll para o final do container
   const scrollToBottom = () => {
+    setShowNewMessageButton(false);
     if (containerRef.current) {
       containerRef.current.scrollTop = containerRef.current.scrollHeight;
     }
@@ -238,6 +255,7 @@ export default function ChatTecnico() {
     try {
       // Chama a função do servidor passando os parâmetros
       const result = await fetchOpennedCals();
+
       setCalls(result);
     } catch (err: any) {
       setError(err.message);
@@ -258,6 +276,8 @@ export default function ChatTecnico() {
 
   // Atualiza o chat selecionado
   const handleChatSelect = async (chatId: number) => {
+    setHasMoreMessages(true);
+    setFirstLoad(true);
     if (chatId === selectedChat?.id_chamado) return;
 
     if (selectedChat) leaveCall(selectedChat.id_chamado);
@@ -268,7 +288,8 @@ export default function ChatTecnico() {
     setSelectedChat(resultCall);
 
     try {
-      await fetchMessages(chatId, 1, 999);
+      await fetchMessages(chatId, 1, 10);
+      scrollToBottom();
     } catch (error) {}
 
     setCalls(
@@ -338,6 +359,91 @@ export default function ChatTecnico() {
     inputRef.current?.focus(); //foca o cursor no input
   };
 
+  const handleLoadMoreMessage = async () => {
+    if (containerRef.current) {
+      const { scrollTop } = containerRef.current;
+
+      if (scrollTop === 0 && !loadingMoreMessages && hasMoreMessages) {
+        console.log(
+          "ENTROU NO EFFECT PARA BUSCAR NOVAS MENSAGENS: ",
+          scrollTop
+        );
+        console.log("CHAT SELECIONADO: ", selectedChat);
+
+        if (messages.length > 0) {
+          console.log("PRIMEIRA MENSAGEM: ", messages[0].id_mensagem);
+
+          // Chama fetchMoreMessages quando o usuário rolar para o topo
+          const moreMessages = await fetchMoreMessages(
+            selectedChat?.id_operador?.toString() ?? "",
+            selectedChat?.cnpj_operador ?? "",
+            messages[0].id_mensagem,
+            10
+          );
+
+          console.log("MENASGENS: ", moreMessages);
+
+          if (moreMessages.length === 0 || moreMessages.length < 10) {
+            // Se não houver mais mensagens ou menos de 10 mensagens, não buscar mais
+            setHasMoreMessages(false);
+          }
+        }
+      }
+    }
+  };
+
+  const handleScroll = async () => {
+    if (!containerRef.current) return;
+
+    const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
+    const isBottom = scrollHeight - scrollTop === clientHeight;
+    setIsAtBottom(isBottom);
+
+    if (isBottom) {
+      setShowNewMessageButton(false);
+    }
+
+    if (containerRef.current.scrollTop === 0 && hasMoreMessages) {
+      const previousHeight = containerRef.current.scrollHeight; // Salva altura antes do carregamento
+
+      await handleLoadMoreMessage().then(() => {
+        requestAnimationFrame(() => {
+          if (containerRef.current) {
+            // Mantém a posição após adicionar mensagens
+            containerRef.current.scrollTop =
+              containerRef.current.scrollHeight - previousHeight;
+          }
+        });
+      });
+    }
+  };
+
+  //ARMAZENA O TAMANHO DO SCROLL DO CONTAINER AO CARREGAR AS MENSAGENS
+  useEffect(() => {
+    if (messages.length > 0 && firstLoad) {
+      setFirstLoad(false); // Apenas na primeira carga rola para o final
+      requestAnimationFrame(scrollToBottom);
+    }
+
+    if (isAtBottom) {
+      scrollToBottom();
+    } else {
+      if (messages.length > 0) {
+        if (lastMessageId !== null) {
+          if (messages[messages.length - 1].id_mensagem > lastMessageId) {
+            setShowNewMessageButtonText("Novas mensagens");
+            setShowNewMessageButton(true);
+          } else {
+            setShowNewMessageButtonText("");
+            setShowNewMessageButton(true);
+          }
+        }
+
+        setLastMessageId(messages[messages.length - 1].id_mensagem);
+      }
+    }
+  }, [messages]);
+
   if (loading)
     return (
       <div className="h-full">
@@ -371,6 +477,7 @@ export default function ChatTecnico() {
         <div className="flex flex-col flex-1 p-6 bg-gray-100 overflow-hidden">
           <div
             ref={containerRef}
+            onScroll={handleScroll}
             className="flex-1 overflow-y-auto scroll-hidden"
           >
             {loadingMessages ? (
@@ -378,15 +485,53 @@ export default function ChatTecnico() {
                 <Loading />
               </div>
             ) : (
-              messages.map((message) => (
-                <Message
-                  call={selectedChat!}
-                  key={message.id_mensagem}
-                  message={message}
-                  isCurrentUser={message.remetente === "TECNICO"}
-                  nomeLogado={nomeTecnico!}
-                />
-              ))
+              messages.map((message, index) => {
+                const prevMessage = index > 0 ? messages[index - 1] : null;
+                const messageDate = formatDateTimeToDate(message.data); // Função para formatar a data (Ex: "12/03/2024")
+                const prevMessageDate = prevMessage
+                  ? formatDateTimeToDate(prevMessage.data)
+                  : null;
+
+                const isNewDate = prevMessageDate !== messageDate;
+                const isNewChamado =
+                  prevMessage && prevMessage.id_chamado !== message.id_chamado;
+
+                return (
+                  <div key={message.id_mensagem}>
+                    {/* Exibir divisor de chamado */}
+                    {isNewChamado && (
+                      <div className="flex justify-center my-4">
+                        <div className="bg-gray-300 text-gray-700 px-3 py-1 rounded-lg text-sm">
+                          Chamado #{message.id_chamado}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Exibir divisor de data */}
+                    {isNewDate && (
+                      <div className="flex justify-center my-4">
+                        <div className="bg-gray-200 text-gray-800 px-3 py-1 rounded-lg text-sm">
+                          {messageDate}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Exibir a mensagem normalmente */}
+                    <Message
+                      call={selectedChat!}
+                      message={message}
+                      isCurrentUser={message.remetente === "TECNICO"}
+                      nomeLogado={nomeTecnico!}
+                    />
+                  </div>
+                );
+              })
+            )}
+            {showNewMessageButton && (
+              <NewMessageButton
+                onClick={scrollToBottom}
+                text={showNewMessageButtonText}
+              />
             )}
           </div>
 
