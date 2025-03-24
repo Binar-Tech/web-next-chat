@@ -1,5 +1,5 @@
-import { ChamadosDto } from "@/app/(pages)/home/_actions/api";
 import { CallUser } from "./call-user.intarface";
+import { ChamadosDto } from "./chamado.dto";
 import { User } from "./user.interface";
 
 export interface Call {

@@ -4,13 +4,15 @@ import Loading from "@/app/(pages)/chat/_components/loading";
 import Message from "@/app/(pages)/chat/_components/message";
 import { Button } from "@/app/_components/ui/button";
 import { formatDateTimeToDate } from "@/app/_utils/data";
-import { ClipboardIcon, SendIcon } from "lucide-react";
+import { SendIcon } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { FaPaperclip } from "react-icons/fa";
 import {
   closeCall,
   closeCallWithoutTicket,
   fetchOpennedCals,
+  uploadFile,
 } from "../_actions/api";
 import { AcceptCallDto } from "../_actions/dtos/accept-call.dto";
 import { ChamadosDto } from "../_actions/dtos/chamado.dto";
@@ -21,6 +23,8 @@ import { RoleEnum } from "../_actions/enums/role.enum";
 import ChatList from "../_components/chat-list";
 import ChatSidebar from "../_components/chat-navbar";
 import NewMessageButton from "../_components/float-buttom-messages";
+import NewCallSeparator from "../_components/new-call-separator";
+import NewDateSeparator from "../_components/new-date-separator";
 import { useChatMessages } from "../_hooks/useChatMessages";
 import { dropdownEventEmitter } from "../_services/dropdown-event/dropdown-event-emitter";
 import { PerfilEnum } from "../_services/enums/perfil.enum";
@@ -38,6 +42,7 @@ export default function ChatTecnico() {
   const [selectedChatId, setSelectedChatId] = useState<number>(0);
   const [selectedChat, setSelectedChat] = useState<ChamadosDto>();
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [fileUpload, setFileUpload] = useState<File | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
@@ -46,6 +51,7 @@ export default function ChatTecnico() {
   const [showNewMessageButton, setShowNewMessageButton] = useState(false);
   const [showNewMessageButtonText, setShowNewMessageButtonText] = useState("");
   const [lastMessageId, setLastMessageId] = useState<number | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   const selectedChatIdRef = useRef(selectedChatId);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -210,6 +216,8 @@ export default function ChatTecnico() {
     selectedChatIdRef.current = selectedChatId;
   }, [selectedChatId]);
 
+  useEffect(() => {}, [setShowNewMessageButton]);
+
   //atualiza o scroll para o final do container
   const scrollToBottom = () => {
     setShowNewMessageButton(false);
@@ -228,9 +236,7 @@ export default function ChatTecnico() {
 
   const handleDropdownClick = async (action: string) => {
     console.log(`Botão clicado: ${action}`);
-    console.log(`chat selecionado: `, selectedChat);
-    console.log(`chat selecionado: `, selectedChatId);
-    console.log(`chat selecionado: `, selectedChatIdRef.current);
+
     switch (action) {
       case "encerrar":
         await closeCall(selectedChatIdRef.current);
@@ -311,7 +317,7 @@ export default function ChatTecnico() {
   function enterCall(chatId: number, role: RoleEnum) {
     const enterCall: EnterChatDto = {
       chatId,
-      role: RoleEnum.OBSERVER,
+      role,
     };
     socketService.enterCall(enterCall);
   }
@@ -327,6 +333,9 @@ export default function ChatTecnico() {
   };
 
   const handleOpenFilePicker = () => {
+    if (selectedChatIdRef.current <= 0) {
+      return;
+    }
     fileInputRef.current?.click();
   };
 
@@ -337,6 +346,7 @@ export default function ChatTecnico() {
     if (file) {
       const localUrl = URL.createObjectURL(file);
       setImageUrl(localUrl);
+      setFileUpload(file);
       setModalOpen(true); // Abrir o modal automaticamente
     }
   };
@@ -403,6 +413,12 @@ export default function ChatTecnico() {
       setShowNewMessageButton(false);
     }
 
+    const altura = scrollHeight - scrollTop;
+
+    if (altura - clientHeight >= 300 && showNewMessageButton !== true) {
+      setShowNewMessageButton(true);
+    }
+
     if (containerRef.current.scrollTop === 0 && hasMoreMessages) {
       const previousHeight = containerRef.current.scrollHeight; // Salva altura antes do carregamento
 
@@ -443,6 +459,24 @@ export default function ChatTecnico() {
       }
     }
   }, [messages]);
+
+  const handleConfirmUpload = async () => {
+    setUploading(true);
+    try {
+      const message: CreateMessageDto = {
+        id_chamado: selectedChat!.id_chamado,
+        mensagem: null,
+        remetente: PerfilEnum.TECNICO,
+        tecnico_responsavel: nomeTecnico,
+      };
+      const result = await uploadFile(fileUpload!, message, selectedChat!);
+      socketService.sendMessage(result);
+    } catch (error) {
+    } finally {
+      setModalOpen(false);
+      setUploading(false);
+    }
+  };
 
   if (loading)
     return (
@@ -500,20 +534,12 @@ export default function ChatTecnico() {
                   <div key={message.id_mensagem}>
                     {/* Exibir divisor de chamado */}
                     {isNewChamado && (
-                      <div className="flex justify-center my-4">
-                        <div className="bg-gray-300 text-gray-700 px-3 py-1 rounded-lg text-sm">
-                          Chamado #{message.id_chamado}
-                        </div>
-                      </div>
+                      <NewCallSeparator id_chamado={message.id_chamado} />
                     )}
 
                     {/* Exibir divisor de data */}
                     {isNewDate && (
-                      <div className="flex justify-center my-4">
-                        <div className="bg-gray-200 text-gray-800 px-3 py-1 rounded-lg text-sm">
-                          {messageDate}
-                        </div>
-                      </div>
+                      <NewDateSeparator messageDate={messageDate} />
                     )}
 
                     {/* Exibir a mensagem normalmente */}
@@ -550,14 +576,14 @@ export default function ChatTecnico() {
               className="h-full bg-blue-400"
               onClick={handleOpenFilePicker}
             >
-              <ClipboardIcon />
+              <FaPaperclip />
             </Button>
             <Button className="h-full" onClick={handleSendMessage}>
               <SendIcon />
             </Button>
             <input
               type="file"
-              accept="image/*"
+              accept="*"
               ref={fileInputRef}
               onChange={handleImageChange}
               className="hidden"
@@ -566,6 +592,9 @@ export default function ChatTecnico() {
               open={modalOpen}
               onClose={() => setModalOpen(false)}
               imageUrl={imageUrl}
+              onConfirm={handleConfirmUpload}
+              isUploading={uploading}
+              fileName={fileUpload?.name}
             />
           </div>
         </div>

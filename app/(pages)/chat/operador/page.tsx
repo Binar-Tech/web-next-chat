@@ -2,17 +2,21 @@
 import Loading from "@/app/(pages)/chat/_components/loading";
 import Message from "@/app/(pages)/chat/_components/message";
 import { Button } from "@/app/_components/ui/button";
-import { ClipboardIcon, SendIcon } from "lucide-react";
+import { SendIcon } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MessageDto } from "../_actions/dtos/message-dto";
 
 import { formatDateTimeToDate } from "@/app/_utils/data";
+import { FaPaperclip } from "react-icons/fa";
+import { uploadFile } from "../_actions/api";
 import { Call } from "../_actions/dtos/call.interface";
 import { CreateMessageDto } from "../_actions/dtos/create-message.dto";
 import { ReturnChamadoDto } from "../_actions/dtos/returnChamado.dto";
 import NewMessageButton from "../_components/float-buttom-messages";
 import ImagePreviewModal from "../_components/image-preview-modal";
+import NewCallSeparator from "../_components/new-call-separator";
+import NewDateSeparator from "../_components/new-date-separator";
 import { useChatMessages } from "../_hooks/useChatMessages";
 import { PerfilEnum } from "../_services/enums/perfil.enum";
 import { eventManager } from "../_services/socket/eventManager";
@@ -34,6 +38,8 @@ export default function ChatOperador() {
   const [call, setCall] = useState<Call | null>(null);
   const [message, setMessage] = useState<string>("");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [fileUpload, setFileUpload] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -227,7 +233,26 @@ export default function ChatOperador() {
     if (file) {
       const localUrl = URL.createObjectURL(file);
       setImageUrl(localUrl);
+      setFileUpload(file);
       setModalOpen(true); // Abrir o modal automaticamente
+    }
+  };
+
+  const handleConfirmUpload = async () => {
+    setUploading(true);
+    try {
+      const message: CreateMessageDto = {
+        id_chamado: call!.chamado!.id_chamado,
+        mensagem: null,
+        remetente: PerfilEnum.OPERADOR,
+        nome_arquivo: fileUpload!.name,
+      };
+      const result = await uploadFile(fileUpload!, message, call!.chamado!);
+      socketService.sendMessage(result);
+    } catch (error) {
+    } finally {
+      setModalOpen(false);
+      setUploading(false);
     }
   };
 
@@ -273,11 +298,7 @@ export default function ChatOperador() {
 
     const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
     const isBottom = scrollHeight - scrollTop === clientHeight;
-    console.log("isBottom", isBottom);
-    console.log("altura total", scrollHeight);
-    console.log("altura atual", scrollTop);
-    console.log("altura cliente", clientHeight);
-    console.log("altura - top", scrollHeight - scrollTop);
+
     setIsAtBottom(isBottom);
 
     if (isBottom) {
@@ -286,7 +307,6 @@ export default function ChatOperador() {
     const altura = scrollHeight - scrollTop;
 
     if (altura - clientHeight >= 300 && showNewMessageButton !== true) {
-      console.log("É MAIOR QUE 100");
       setShowNewMessageButton(true);
     }
 
@@ -341,22 +361,13 @@ export default function ChatOperador() {
               return (
                 <div key={message.id_mensagem}>
                   {/* Exibir divisor de chamado */}
+                  {/* Exibir divisor de chamado */}
                   {isNewChamado && (
-                    <div className="flex justify-center my-4">
-                      <div className="bg-gray-300 text-gray-700 px-3 py-1 rounded-lg text-sm">
-                        Chamado #{message.id_chamado}
-                      </div>
-                    </div>
+                    <NewCallSeparator id_chamado={message.id_chamado} />
                   )}
 
                   {/* Exibir divisor de data */}
-                  {isNewDate && (
-                    <div className="flex justify-center my-4">
-                      <div className="bg-gray-200 text-gray-800 px-3 py-1 rounded-lg text-sm">
-                        {messageDate}
-                      </div>
-                    </div>
-                  )}
+                  {isNewDate && <NewDateSeparator messageDate={messageDate} />}
 
                   {/* Exibir a mensagem normalmente */}
                   <Message
@@ -396,7 +407,7 @@ export default function ChatOperador() {
             onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
           />
           <Button className="h-full bg-blue-400" onClick={handleOpenFilePicker}>
-            <ClipboardIcon />
+            <FaPaperclip />
           </Button>
           <Button className="h-full" onClick={handleSendMessage}>
             <SendIcon />
@@ -412,6 +423,9 @@ export default function ChatOperador() {
             open={modalOpen}
             onClose={() => setModalOpen(false)}
             imageUrl={imageUrl}
+            onConfirm={handleConfirmUpload}
+            isUploading={uploading}
+            fileName={fileUpload?.name}
           />
         </div>
       </div>

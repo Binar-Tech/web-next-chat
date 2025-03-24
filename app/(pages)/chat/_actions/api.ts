@@ -1,11 +1,13 @@
 "use server";
 
 import { ChamadosDto } from "./dtos/chamado.dto";
+import { CreateMessageDto } from "./dtos/create-message.dto";
 import { MessageDto } from "./dtos/message-dto";
 
 export async function fetchOpennedCals(): Promise<ChamadosDto[]> {
+  const fileBaseUrl = process.env.NEXT_PUBLIC_URL_API;
   // Aqui você faz a lógica da API, por exemplo, uma chamada de fetch
-  const response = await fetch(`http://10.0.1.121:4000/chamados/open`);
+  const response = await fetch(`${fileBaseUrl}/chamados/open`);
 
   if (!response.ok) {
     throw new Error("Erro ao chamar a API");
@@ -22,8 +24,9 @@ export async function fetchMessagesByIdChamado(
   limit: number
 ): Promise<MessageDto[]> {
   // Aqui você faz a lógica da API, por exemplo, uma chamada de fetch
+  const fileBaseUrl = process.env.NEXT_PUBLIC_URL_API;
   const response = await fetch(
-    `http://10.0.1.121:4000/messages/${id_chamado}?limit=${limit}&skip=${nextPage}`
+    `${fileBaseUrl}/messages/${id_chamado}?limit=${limit}&skip=${nextPage}`
   );
 
   if (!response.ok) {
@@ -41,8 +44,9 @@ export async function fetchMoreMessagesApi(
   limit: number
 ): Promise<MessageDto[]> {
   // Aqui você faz a lógica da API, por exemplo, uma chamada de fetch
+  const fileBaseUrl = process.env.NEXT_PUBLIC_URL_API;
   const response = await fetch(
-    `http://10.0.1.121:4000/messages/more-messages?operador=${operador}&cnpj=${cnpj}&id_mensagem=${id_mensagem}&limit=${limit}`
+    `${fileBaseUrl}/messages/more-messages?operador=${operador}&cnpj=${cnpj}&id_mensagem=${id_mensagem}&limit=${limit}`
   );
 
   if (!response.ok) {
@@ -55,8 +59,9 @@ export async function fetchMoreMessagesApi(
 
 export async function closeCall(chamado: number): Promise<MessageDto> {
   // Aqui você faz a lógica da API, por exemplo, uma chamada de fetch
+  const fileBaseUrl = process.env.NEXT_PUBLIC_URL_API;
   console.log("idchamado: ", chamado);
-  const response = await fetch(`http://10.0.1.121:4000/chamados/${chamado}`, {
+  const response = await fetch(`${fileBaseUrl}/chamados/${chamado}`, {
     method: "PATCH",
   });
 
@@ -72,8 +77,9 @@ export async function closeCallWithoutTicket(
   chamado: number
 ): Promise<MessageDto> {
   // Aqui você faz a lógica da API, por exemplo, uma chamada de fetch
+  const fileBaseUrl = process.env.NEXT_PUBLIC_URL_API;
   const response = await fetch(
-    `http://10.0.1.121:4000/chamados/withoutticket/${chamado}`,
+    `${fileBaseUrl}/chamados/withoutticket/${chamado}`,
     {
       method: "PATCH",
     }
@@ -84,5 +90,30 @@ export async function closeCallWithoutTicket(
   }
 
   const data: MessageDto = await response.json();
+  return data;
+}
+
+export async function uploadFile(
+  file: File,
+  message: CreateMessageDto,
+  chamado: ChamadosDto
+): Promise<CreateMessageDto> {
+  const fileBaseUrl = process.env.NEXT_PUBLIC_URL_API;
+  const formData = new FormData();
+  formData.append("file", file); // Arquivo
+  formData.append("body", JSON.stringify(message));
+  const response = await fetch(
+    `${fileBaseUrl}/files/${chamado.cnpj_operador}`,
+    {
+      method: "POST",
+      body: formData,
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Erro ao chamar a API");
+  }
+
+  const data: CreateMessageDto = await response.json();
   return data;
 }

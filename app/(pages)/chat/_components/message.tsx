@@ -1,7 +1,9 @@
 "use client";
 
 import { formatDate } from "@/app/_utils/data";
-import { useEffect, useRef, useState } from "react";
+import { getFileType } from "@/app/_utils/file";
+import { LucideDownload } from "lucide-react";
+import { useState } from "react";
 import { ChamadosDto } from "../_actions/dtos/chamado.dto";
 import { MessageDto } from "../_actions/dtos/message-dto";
 import { PerfilEnum } from "../_services/enums/perfil.enum";
@@ -23,7 +25,7 @@ export default function Message({
 }: MessageProps) {
   const [modalOpen, setModalOpen] = useState(false);
   // Base URL para buscar arquivos
-  const fileBaseUrl = "http://localhost:4000/files/images";
+  const fileBaseUrl = process.env.NEXT_PUBLIC_URL_API_FILES;
 
   // Função para verificar se é um link do YouTube
   const isYouTubeLink = (url: string) => {
@@ -43,43 +45,8 @@ export default function Message({
     return `${fileBaseUrl}?path=${message.caminho_arquivo_ftp}/${message.nome_arquivo}`;
   };
 
-  // Identificar a extensão do arquivo
-  const getFileType = () => {
-    if (!message.nome_arquivo) return null;
-    const ext = message.nome_arquivo.split(".").pop()?.toLowerCase();
-
-    if (ext) {
-      const imageExtensions = ["jpg", "jpeg", "png", "gif", "bmp", "webp"];
-      const videoExtensions = ["mp4", "avi", "mov", "wmv", "mkv", "flv"];
-      const documentExtensions = ["pdf", "txt", "doc", "docx", "xls", "xlsx"];
-
-      if (imageExtensions.includes(ext)) return "imagem";
-      if (videoExtensions.includes(ext)) return "video";
-      if (documentExtensions.includes(ext)) return "arquivo";
-    }
-    return "desconhecido";
-  };
-
   // Tipo do arquivo baseado na extensão
-  const fileType = getFileType();
-
-  const [isVisible, setIsVisible] = useState(false);
-  const imageRef = useRef<HTMLImageElement | null>(null);
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    if (imageRef.current) observer.observe(imageRef.current);
-
-    return () => observer.disconnect();
-  }, []);
+  const fileType = getFileType(message.nome_arquivo);
 
   //verifica qual nome exibir no box da mensagem {voce, operador, ou tecnico}
   function handleNameUserOnMessageBox(): string {
@@ -118,6 +85,7 @@ export default function Message({
                 : "bg-gray-200 text-gray-800"
             }`}
           >
+            {/* cabeçalho do box da mensagem, com nome e data */}
             <div className="flex flex-1 w-full flex-row justify-between items-center mb-2">
               <div
                 className={`text-xs  ${
@@ -134,6 +102,7 @@ export default function Message({
                 {formatDate(message.data)}
               </div>
             </div>
+
             {/* Se for texto puro */}
             {message.mensagem && !isYouTubeLink(message.mensagem) && (
               <p>{message.mensagem}</p>
@@ -176,12 +145,25 @@ export default function Message({
             {fileType === "arquivo" && (
               <a
                 href={getFileUrl()}
-                download
+                download={message.nome_arquivo}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block mt-2 bg-blue-700 text-white px-3 py-2 rounded-lg text-sm text-center"
+                className=" mt-2 bg-blue-700 text-white px-3 py-2 rounded-lg text-sm text-center content-center flex flex-row items-center gap-2"
               >
-                📄 Baixar arquivo
+                <LucideDownload />
+                {message.nome_arquivo}
+              </a>
+            )}
+            {fileType === "other" && (
+              <a
+                href={getFileUrl()} // Certifique-se de que `fileUrl` seja um link válido
+                download={message.nome_arquivo} // Define o nome do arquivo para download
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 bg-blue-700 text-white px-3 py-2 rounded-lg text-sm text-center flex flex-row items-center gap-2"
+              >
+                <LucideDownload />
+                {message.nome_arquivo}
               </a>
             )}
             <ImageModal

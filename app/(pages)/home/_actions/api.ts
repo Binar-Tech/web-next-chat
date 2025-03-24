@@ -9,8 +9,9 @@ export async function fetchCallByIdOperadorAndCnpj(
   cnpj: string
 ): Promise<ChamadosDto> {
   // Aqui você faz a lógica da API, por exemplo, uma chamada de fetch
+  const fileBaseUrl = process.env.NEXT_PUBLIC_URL_API;
   const response = await fetch(
-    `http://10.0.1.121:4000/chamados?cnpj=${cnpj}&idOperador=${idOperador}`
+    `${fileBaseUrl}/chamados?cnpj=${cnpj}&idOperador=${idOperador}`
   );
 
   if (!response.ok) {
@@ -26,7 +27,8 @@ export async function createChamado(
   chamado: CreateChamadoDto
 ): Promise<ReturnChamadoDto> {
   // Aqui você faz a lógica da API, por exemplo, uma chamada de fetch
-  const response = await fetch(`http://10.0.1.121:4000/chamados`, {
+  const fileBaseUrl = process.env.NEXT_PUBLIC_URL_API;
+  const response = await fetch(`${fileBaseUrl}/chamados`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
