@@ -27,6 +27,7 @@ export default function ImagePreviewModal({
   fileName,
 }: ImagePreviewModalProps) {
   const fileType = getFileType(fileName!);
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-screen-md w-full max-h-[90vh] flex flex-col items-center justify-between p-4">
@@ -34,7 +35,7 @@ export default function ImagePreviewModal({
 
         {imageUrl ? (
           <div className="flex justify-center items-center w-full max-h-[70vh] overflow-hidden">
-            {fileType === "image" ? (
+            {fileType === "imagem" ? (
               <img
                 src={imageUrl}
                 alt="Imagem Selecionada"

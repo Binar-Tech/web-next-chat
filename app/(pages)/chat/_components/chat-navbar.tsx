@@ -64,7 +64,8 @@ export default function ChatSidebar({
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-56">
             <DropdownMenuGroup>
-              {(chat?.tecnico_responsavel !== idTecnico || isAdmin) && (
+              {(chat?.tecnico_responsavel !== idTecnico ||
+                (isAdmin && chat?.tecnico_responsavel !== idTecnico)) && (
                 <>
                   <DropdownMenuItem
                     onClick={() =>

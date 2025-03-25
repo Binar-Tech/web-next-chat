@@ -16,7 +16,6 @@ export function useChatMessages() {
     nextPage: number,
     limit: number
   ): Promise<MessageDto[]> => {
-    console.log("BUSCANDO MENSAGENS DO CHAT SELECIONADO");
     setLoadingMessages(true);
     try {
       const result = await fetchMessagesByIdChamado(chatId, nextPage, limit);

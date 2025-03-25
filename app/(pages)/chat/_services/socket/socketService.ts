@@ -35,6 +35,7 @@ class SocketService {
     );
     this.client.on("open-call", (call) => eventManager.emit("open-call", call));
     this.client.on("logged", (logged) => eventManager.emit("logged", logged));
+    this.client.on("user", (user) => eventManager.emit("user", user));
   }
 
   login(data: LoginSocketDto) {

@@ -13,8 +13,10 @@ import { uploadFile } from "../_actions/api";
 import { Call } from "../_actions/dtos/call.interface";
 import { CreateMessageDto } from "../_actions/dtos/create-message.dto";
 import { ReturnChamadoDto } from "../_actions/dtos/returnChamado.dto";
+import ErrorPage from "../_components/error-page";
 import NewMessageButton from "../_components/float-buttom-messages";
 import ImagePreviewModal from "../_components/image-preview-modal";
+import ModalDragdrop from "../_components/modal-dragdrop";
 import NewCallSeparator from "../_components/new-call-separator";
 import NewDateSeparator from "../_components/new-date-separator";
 import { useChatMessages } from "../_hooks/useChatMessages";
@@ -40,6 +42,7 @@ export default function ChatOperador() {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [fileUpload, setFileUpload] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [modalDragdrop, setModalDragdrop] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -57,7 +60,6 @@ export default function ChatOperador() {
   const router = useRouter();
 
   const handleNewMessage = useCallback((message: MessageDto) => {
-    console.log("message: ", message);
     setMessages((prev) => {
       const updatedMessages = [...prev, message]; // Adiciona a mensagem no início
       return updatedMessages;
@@ -66,7 +68,7 @@ export default function ChatOperador() {
 
   const onCallUpdated = useCallback((data: ReturnChamadoDto) => {
     //cria uma mensagem de sistema para notificar o operador
-    console.log("chamado aceito: ", data);
+
     const message: MessageDto = {
       caminho_arquivo_ftp: "",
       data: new Date().toISOString(),
@@ -84,7 +86,6 @@ export default function ChatOperador() {
       const updatedMessages = [...prev, message]; // Adiciona a mensagem no início
       return updatedMessages;
     });
-    console.log("call accepted");
   }, []);
 
   const onEnteredCall = useCallback((data: any) => {
@@ -96,14 +97,12 @@ export default function ChatOperador() {
   }, []);
 
   const onCallClosed = useCallback((data: { id: number }) => {
-    console.log("CALL CLOSED");
     router.replace(
       `/home?cnpj=${cnpj}&nomeOperador=${nomeOperador}&idOperador=${idOperador}`
     );
   }, []);
 
   const handleLogged = useCallback(async (call: Call) => {
-    console.log("call:", call);
     if (call) {
       setCall(call);
       const retorno = await fetchMessages(call.chamado.id_chamado, 1, 10);
@@ -119,6 +118,37 @@ export default function ChatOperador() {
       router.replace(
         `/home?cnpj=${cnpj}&nomeOperador=${nomeOperador}&idOperador=${idOperador}`
       );
+    }
+  }, []);
+
+  // Efeitos de Drag & Drop
+  const handleDragEnter = useCallback((event: DragEvent) => {
+    console.log("ENTROU NO DRAG ENTER");
+    event.preventDefault();
+    setModalDragdrop(true);
+  }, []);
+
+  const handleDragOver = useCallback((event: DragEvent) => {
+    event.preventDefault();
+  }, []);
+
+  const handleDragLeave = useCallback((event: DragEvent) => {
+    // Evita fechar o modal se o mouse ainda estiver dentro da tela
+    if (event.relatedTarget === null && event.clientY <= 0) {
+      setModalDragdrop(false);
+    }
+  }, []);
+
+  const handleDrop = useCallback((event: DragEvent) => {
+    event.preventDefault();
+    setModalDragdrop(false);
+
+    if (event.dataTransfer?.files.length) {
+      const uploadedFile = event.dataTransfer.files[0];
+      const localUrl = URL.createObjectURL(uploadedFile);
+      setImageUrl(localUrl);
+      setFileUpload(uploadedFile);
+      setModalOpen(true);
     }
   }, []);
 
@@ -143,6 +173,20 @@ export default function ChatOperador() {
       eventManager.off("closed-call", onCallClosed);
     };
   }, []);
+
+  useEffect(() => {
+    window.addEventListener("dragenter", handleDragEnter);
+    window.addEventListener("dragover", handleDragOver);
+    window.addEventListener("dragleave", handleDragLeave);
+    window.addEventListener("drop", handleDrop);
+
+    return () => {
+      window.removeEventListener("dragenter", handleDragEnter);
+      window.removeEventListener("dragover", handleDragOver);
+      window.removeEventListener("dragleave", handleDragLeave);
+      window.removeEventListener("drop", handleDrop);
+    };
+  }, [handleDragEnter, handleDragOver, handleDragLeave, handleDrop]);
 
   useEffect(() => {
     connectSocket();
@@ -219,7 +263,7 @@ export default function ChatOperador() {
       remetente: PerfilEnum.OPERADOR,
       tecnico_responsavel: null,
     };
-    console.log("passou", newMessage);
+
     socketService.sendMessage(newMessage);
 
     setMessage(""); // Limpa o input após enviar
@@ -265,15 +309,7 @@ export default function ChatOperador() {
       const { scrollTop } = containerRef.current;
 
       if (scrollTop === 0 && !loadingMoreMessages && hasMoreMessages) {
-        console.log(
-          "ENTROU NO EFFECT PARA BUSCAR NOVAS MENSAGENS: ",
-          scrollTop
-        );
-        console.log("CHAT SELECIONADO: ", call?.chamado);
-
         if (messages.length > 0) {
-          console.log("PRIMEIRA MENSAGEM: ", messages[0].id_mensagem);
-
           // Chama fetchMoreMessages quando o usuário rolar para o topo
           const moreMessages = await fetchMoreMessages(
             call?.chamado.id_operador.toString() ?? "",
@@ -281,8 +317,6 @@ export default function ChatOperador() {
             messages[0].id_mensagem,
             10
           );
-
-          console.log("MENASGENS: ", moreMessages);
 
           if (moreMessages.length === 0 || moreMessages.length < 10) {
             // Se não houver mais mensagens ou menos de 10 mensagens, não buscar mais
@@ -332,12 +366,7 @@ export default function ChatOperador() {
       </div>
     );
 
-  if (error)
-    return (
-      <div>
-        <p>Erro: {error}</p>
-      </div>
-    );
+  if (error) return <ErrorPage message={error} />;
   return (
     <div className="bg-blue-400 flex-[4] h-full">
       <div className="flex flex-col h-screen p-6 bg-gray-100 overflow-hidden">
@@ -427,6 +456,8 @@ export default function ChatOperador() {
             isUploading={uploading}
             fileName={fileUpload?.name}
           />
+
+          <ModalDragdrop open={modalDragdrop} />
         </div>
       </div>
     </div>

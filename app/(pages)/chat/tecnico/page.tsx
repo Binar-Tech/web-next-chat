@@ -15,14 +15,18 @@ import {
   uploadFile,
 } from "../_actions/api";
 import { AcceptCallDto } from "../_actions/dtos/accept-call.dto";
+import { Call } from "../_actions/dtos/call.interface";
 import { ChamadosDto } from "../_actions/dtos/chamado.dto";
 import { CreateMessageDto } from "../_actions/dtos/create-message.dto";
 import { EnterChatDto } from "../_actions/dtos/enter-chat.dto";
 import { MessageDto } from "../_actions/dtos/message-dto";
+import { User } from "../_actions/dtos/user.interface";
 import { RoleEnum } from "../_actions/enums/role.enum";
 import ChatList from "../_components/chat-list";
 import ChatSidebar from "../_components/chat-navbar";
+import ErrorPage from "../_components/error-page";
 import NewMessageButton from "../_components/float-buttom-messages";
+import ModalDragdrop from "../_components/modal-dragdrop";
 import NewCallSeparator from "../_components/new-call-separator";
 import NewDateSeparator from "../_components/new-date-separator";
 import { useChatMessages } from "../_hooks/useChatMessages";
@@ -37,13 +41,15 @@ export default function ChatTecnico() {
   const idTecnico = searchParams.get("idTecnico");
 
   const [calls, setCalls] = useState<ChamadosDto[] | null>(null);
+  const [userLogged, setUserLogged] = useState<User>();
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState("");
   const [selectedChatId, setSelectedChatId] = useState<number>(0);
   const [selectedChat, setSelectedChat] = useState<ChamadosDto>();
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [fileUpload, setFileUpload] = useState<File | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [modalDragdrop, setModalDragdrop] = useState(false);
   const [message, setMessage] = useState("");
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
   const [firstLoad, setFirstLoad] = useState(true);
@@ -90,10 +96,6 @@ export default function ChatTecnico() {
             call.tecnico_responsavel == null) &&
           call.id_chamado === message.id_chamado
         ) {
-          console.log("call atualizado: ", call);
-          console.log("selectedChatIdRef: ", selectedChatIdRef.current);
-          console.log("idTecnico: ", idTecnico);
-
           updated = true; // Indica que pelo menos um item foi atualizado
           return {
             ...call,
@@ -109,6 +111,21 @@ export default function ChatTecnico() {
 
       return updated ? updatedCalls : prevCalls;
     });
+
+    if (document.hidden) {
+      if (Notification.permission === "granted") {
+        const notification = new Notification("Nova mensagem de ", {
+          body: "Clique para abrir o chat",
+          icon: "/notification-icon.png",
+        });
+
+        // Toca o som ao clicar na notificação
+        notification.onclick = () => {
+          window.focus();
+        };
+      }
+      window.parent.postMessage({ type: "NEW_MESSAGE_NOTIFICATION" }, "*");
+    }
   }, []);
 
   //quando o tecnico aceita um chamado em aberto
@@ -120,15 +137,28 @@ export default function ChatTecnico() {
 
   //quando o tecnico fecha um chamado
   const onCallClosed = useCallback((data: ChamadosDto) => {
-    if (selectedChatIdRef.current === data.id_chamado) {
-      console.log("LIMPANDO MENSAGENS");
-      setMessages(() => []);
-    }
-    setSelectedChatId(0);
-    setSelectedChat(undefined);
+    console.log("ENTROU NO CLOSE CALL");
+
     setCalls(
       (prev) => prev?.filter((c) => c.id_chamado !== data.id_chamado) || []
     );
+    if (data.tecnico_responsavel === idTecnico) {
+      window.parent.postMessage(
+        {
+          type: "CLOSE_CALL",
+          call: JSON.stringify(data),
+          id_tecnico_logado: idTecnico,
+        },
+        "*"
+      );
+    }
+
+    if (selectedChatIdRef.current === data.id_chamado) {
+      console.log("É O CHAT SELECIONADO");
+      setMessages(() => []);
+      setSelectedChatId(0);
+      setSelectedChat(undefined);
+    }
   }, []);
 
   const onEnteredCall = useCallback((data: any) => {
@@ -139,12 +169,21 @@ export default function ChatTecnico() {
     console.log("saiu da call: ", data);
   }, []);
 
+  const onUser = useCallback(async (data: User) => {
+    setUserLogged(data);
+    await fetchData(data);
+  }, []);
+
   const onCallOpen = useCallback((data: ChamadosDto) => {
+    if (!userLogged?.tipo_usuario?.includes("ADMINISTRATORS")) {
+      if (!userLogged?.blacklist?.includes(data.cnpj_operador)) return;
+    }
+
+    // Filtra chamados onde tecnico_responsavel === null e o CNPJ está na blacklist
+
     const playSound = () => {
       const notificationSound = new Audio("/notify-new-call.mp3");
-      notificationSound
-        .play()
-        .catch((error) => console.error("Erro ao tocar som:", error));
+      notificationSound.play();
     };
 
     if (document.hidden) {
@@ -176,30 +215,80 @@ export default function ChatTecnico() {
     });
   }, []);
 
+  const handleLogged = useCallback(async (call: Call) => {}, []);
+
+  // Efeitos de Drag & Drop
+  const handleDragEnter = useCallback((event: DragEvent) => {
+    console.log("ENTROU NO DRAG ENTER");
+    event.preventDefault();
+    setModalDragdrop(true);
+  }, []);
+
+  const handleDragOver = useCallback((event: DragEvent) => {
+    event.preventDefault();
+  }, []);
+
+  const handleDragLeave = useCallback((event: DragEvent) => {
+    // Evita fechar o modal se o mouse ainda estiver dentro da tela
+    if (event.relatedTarget === null && event.clientY <= 0) {
+      setModalDragdrop(false);
+    }
+  }, []);
+
+  const handleDrop = useCallback((event: DragEvent) => {
+    event.preventDefault();
+    setModalDragdrop(false);
+
+    if (event.dataTransfer?.files.length) {
+      const uploadedFile = event.dataTransfer.files[0];
+      const localUrl = URL.createObjectURL(uploadedFile);
+      setImageUrl(localUrl);
+      setFileUpload(uploadedFile);
+      setModalOpen(true);
+    }
+  }, []);
+
   // 🔥 Conecta o socket apenas uma vez e adiciona/remover eventos corretamente
   useEffect(() => {
     //connectSocket();
     eventManager.on("connect", loginSocket);
+    eventManager.on("logged", handleLogged);
     eventManager.on("open-call", onCallOpen);
     eventManager.on("new-message", handleNewMessage);
     eventManager.on("accepted-call", onCallUpdated);
     eventManager.on("closed-call", onCallClosed);
     eventManager.on("entered-call", onEnteredCall);
     eventManager.on("leaved-call", onLeaveCall);
-    fetchData();
+    eventManager.on("user", onUser);
 
     return () => {
       eventManager.off("connect", loginSocket);
+      eventManager.off("logged", handleLogged);
       eventManager.off("open-call", onCallOpen);
       eventManager.off("new-message", handleNewMessage);
       eventManager.off("accepted-call", onCallUpdated);
       eventManager.off("closed-call", onCallClosed);
       eventManager.off("entered-call", onEnteredCall);
       eventManager.off("leaved-call", onLeaveCall);
+      eventManager.off("user", onUser);
 
       //socketService.disconnect();
     };
   }, []);
+
+  useEffect(() => {
+    window.addEventListener("dragenter", handleDragEnter);
+    window.addEventListener("dragover", handleDragOver);
+    window.addEventListener("dragleave", handleDragLeave);
+    window.addEventListener("drop", handleDrop);
+
+    return () => {
+      window.removeEventListener("dragenter", handleDragEnter);
+      window.removeEventListener("dragover", handleDragOver);
+      window.removeEventListener("dragleave", handleDragLeave);
+      window.removeEventListener("drop", handleDrop);
+    };
+  }, [handleDragEnter, handleDragOver, handleDragLeave, handleDrop]);
 
   useEffect(() => {
     try {
@@ -235,8 +324,6 @@ export default function ChatTecnico() {
   }, []);
 
   const handleDropdownClick = async (action: string) => {
-    console.log(`Botão clicado: ${action}`);
-
     switch (action) {
       case "encerrar":
         await closeCall(selectedChatIdRef.current);
@@ -245,10 +332,10 @@ export default function ChatTecnico() {
         await closeCallWithoutTicket(selectedChatIdRef.current);
         break;
       case "entrar":
-        enterCall(selectedChatId, RoleEnum.SUPPORT);
+        await enterCall(selectedChatIdRef.current, RoleEnum.SUPPORT);
         break;
       case "sair":
-        leaveCall(selectedChatId);
+        await leaveCall(selectedChatIdRef.current, RoleEnum.SUPPORT);
         break;
 
       default:
@@ -257,12 +344,32 @@ export default function ChatTecnico() {
   };
 
   //carrega todos os chats abertos
-  const fetchData = async () => {
+  const fetchData = async (user: User) => {
     try {
       // Chama a função do servidor passando os parâmetros
       const result = await fetchOpennedCals();
 
+      if (user?.tipo_usuario?.includes("ADMINISTRATORS")) {
+        setCalls(result);
+        return;
+      }
+
       setCalls(result);
+
+      // Filtra chamados onde tecnico_responsavel === null e o CNPJ está na blacklist
+      const blacklistCalls = result.filter(
+        (cal) =>
+          cal.tecnico_responsavel === null &&
+          user?.blacklist?.includes(cal.cnpj_operador)
+      );
+
+      // Pegamos o restante dos chamados que não entram na blacklistCalls
+      const otherCalls = result.filter(
+        (cal) => cal.tecnico_responsavel !== null
+      );
+
+      // Atualiza o estado combinando os dois arrays
+      setCalls([...blacklistCalls, ...otherCalls]);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -286,7 +393,7 @@ export default function ChatTecnico() {
     setFirstLoad(true);
     if (chatId === selectedChat?.id_chamado) return;
 
-    if (selectedChat) leaveCall(selectedChat.id_chamado);
+    if (selectedChat) leaveCall(selectedChat.id_chamado, RoleEnum.OBSERVER);
     enterCall(chatId, RoleEnum.OBSERVER);
     setSelectedChatId(chatId);
 
@@ -306,10 +413,10 @@ export default function ChatTecnico() {
     );
   };
 
-  function leaveCall(chatId: number) {
+  function leaveCall(chatId: number, role: RoleEnum) {
     const leave: EnterChatDto = {
       chatId,
-      role: RoleEnum.OWNER,
+      role,
     };
     socketService.leaveCall(leave);
   }
@@ -341,7 +448,6 @@ export default function ChatTecnico() {
 
   // Quando o usuário seleciona um arquivo
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    console.log("Abrindo seletor de arquivos...");
     const file = event.target.files?.[0];
     if (file) {
       const localUrl = URL.createObjectURL(file);
@@ -352,7 +458,6 @@ export default function ChatTecnico() {
   };
 
   const handleSendMessage = () => {
-    console.log("clicou");
     if (!message.trim()) return; // Evita envio de mensagens vazias
 
     const newMessage: CreateMessageDto = {
@@ -361,7 +466,7 @@ export default function ChatTecnico() {
       remetente: PerfilEnum.TECNICO,
       tecnico_responsavel: nomeTecnico,
     };
-    console.log("passou", newMessage);
+
     socketService.sendMessage(newMessage);
 
     setMessage(""); // Limpa o input após enviar
@@ -374,15 +479,7 @@ export default function ChatTecnico() {
       const { scrollTop } = containerRef.current;
 
       if (scrollTop === 0 && !loadingMoreMessages && hasMoreMessages) {
-        console.log(
-          "ENTROU NO EFFECT PARA BUSCAR NOVAS MENSAGENS: ",
-          scrollTop
-        );
-        console.log("CHAT SELECIONADO: ", selectedChat);
-
         if (messages.length > 0) {
-          console.log("PRIMEIRA MENSAGEM: ", messages[0].id_mensagem);
-
           // Chama fetchMoreMessages quando o usuário rolar para o topo
           const moreMessages = await fetchMoreMessages(
             selectedChat?.id_operador?.toString() ?? "",
@@ -390,8 +487,6 @@ export default function ChatTecnico() {
             messages[0].id_mensagem,
             10
           );
-
-          console.log("MENASGENS: ", moreMessages);
 
           if (moreMessages.length === 0 || moreMessages.length < 10) {
             // Se não houver mais mensagens ou menos de 10 mensagens, não buscar mais
@@ -484,14 +579,11 @@ export default function ChatTecnico() {
         <Loading />
       </div>
     );
-  if (error)
-    return (
-      <div>
-        <p>Erro: {error}</p>
-      </div>
-    );
+  if (error) return <ErrorPage message={error} />;
   return (
     <div className="flex w-full h-screen overflow-hidden">
+      {/* Modal de "Arraste o arquivo aqui" */}
+
       {/* Lado esquerdo - Lista de Chats */}
       <div className="flex-[1] min-w-72 flex flex-col overflow-hidden">
         <ChatList
@@ -505,7 +597,11 @@ export default function ChatTecnico() {
 
       {/* Lado direito - Chat */}
       <div className="bg-blue-400 flex-[4] flex flex-col overflow-hidden">
-        <ChatSidebar chat={selectedChat} idTecnico={idTecnico!} />
+        <ChatSidebar
+          chat={selectedChat}
+          idTecnico={idTecnico!}
+          isAdmin={userLogged?.tipo_usuario?.includes("ADMINISTRATORS")}
+        />
 
         {/* Container de mensagens */}
         <div className="flex flex-col flex-1 p-6 bg-gray-100 overflow-hidden">
@@ -596,6 +692,7 @@ export default function ChatTecnico() {
               isUploading={uploading}
               fileName={fileUpload?.name}
             />
+            <ModalDragdrop open={modalDragdrop} />
           </div>
         </div>
       </div>
