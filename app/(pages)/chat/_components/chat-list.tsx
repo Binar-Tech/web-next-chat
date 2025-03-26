@@ -30,15 +30,15 @@ export default function ChatList({
       call.tecnico_responsavel !== idUserLogged
   );
   return (
-    <div className="border-r border-gray-200 w-full h-screen overflow-y-auto scroll-hidden">
-      <div className="p-4 border-b border-gray-200">
+    <div className="border-r border-gray-200 dark:border-gray-600 w-full h-screen overflow-y-auto scroll-hidden pt-4">
+      {/* <div className="p-4 border-b border-gray-200">
         <h2 className="text-xl font-semibold">Chats</h2>
         <input
           type="text"
           placeholder="Search..."
           className="w-full mt-4 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
-      </div>
+      </div> */}
       <div>
         <Accordion
           type="multiple"

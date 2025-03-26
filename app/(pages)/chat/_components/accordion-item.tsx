@@ -27,7 +27,7 @@ export default function ChatAccordionSection({
       value={value}
       className="border-none rounded-lg shadow-md bg-white dark:bg-gray-800 mb-2"
     >
-      <AccordionTrigger className="px-4 py-3 text-blue-400 text-lg font-semibold bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-all">
+      <AccordionTrigger className="px-4 py-3 text-blue-400 dark:text-orange-400 text-lg font-semibold bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-all">
         {title}
       </AccordionTrigger>
       <AccordionContent className="p-2 bg-gray-50 dark:bg-gray-900 rounded-b-lg">

@@ -106,13 +106,37 @@ export default function ChatOperador() {
     if (call) {
       setCall(call);
       const retorno = await fetchMessages(call.chamado.id_chamado, 1, 10);
-      if (retorno.length < 10) {
+      if (retorno.length < 10 && retorno.length > 0) {
         await fetchMoreMessages(
           call.chamado.id_operador.toString(),
           call.chamado.cnpj_operador,
           retorno[0].id_mensagem,
           10
         );
+      } else if (
+        retorno &&
+        retorno.length <= 0 &&
+        call.chamado.tecnico_responsavel === null
+      ) {
+        //notifica o user que em breve será atendido por um analista
+        const n = Math.floor(Math.random() * (9999 - 999 + 1)) + 999;
+        const message: MessageDto = {
+          caminho_arquivo_ftp: "",
+          data: new Date().toISOString(),
+          id_chamado: call.chamado.id_chamado,
+          mensagem: `Em breve você será atendido por um de nossos analistas. Enquanto isso pode enviar suas dúvidas para agilizar o atendimento!`,
+          id_mensagem: n,
+          id_tecnico: "",
+          nome_arquivo: "",
+          remetente: "",
+          tecnico_responsavel: "",
+          nome_tecnico: "",
+          system_message: true,
+        };
+        setMessages((prev) => {
+          const updatedMessages = [...prev, message]; // Adiciona a mensagem no início
+          return updatedMessages;
+        });
       }
     } else {
       router.replace(
@@ -430,7 +454,7 @@ export default function ChatOperador() {
             ref={inputRef}
             type="text"
             placeholder="Type a message"
-            className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full p-2 border border-gray-30 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}

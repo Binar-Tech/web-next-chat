@@ -15,11 +15,11 @@ import {
   uploadFile,
 } from "../_actions/api";
 import { AcceptCallDto } from "../_actions/dtos/accept-call.dto";
-import { Call } from "../_actions/dtos/call.interface";
 import { ChamadosDto } from "../_actions/dtos/chamado.dto";
 import { CreateMessageDto } from "../_actions/dtos/create-message.dto";
 import { EnterChatDto } from "../_actions/dtos/enter-chat.dto";
 import { MessageDto } from "../_actions/dtos/message-dto";
+import { ReturnChamadoDto } from "../_actions/dtos/returnChamado.dto";
 import { User } from "../_actions/dtos/user.interface";
 import { RoleEnum } from "../_actions/enums/role.enum";
 import ChatList from "../_components/chat-list";
@@ -63,6 +63,7 @@ export default function ChatTecnico() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const userRef = useRef<User | null>(null);
 
   const {
     fetchMessages,
@@ -146,7 +147,7 @@ export default function ChatTecnico() {
       window.parent.postMessage(
         {
           type: "CLOSE_CALL",
-          call: JSON.stringify(data),
+          call: data,
           id_tecnico_logado: idTecnico,
         },
         "*"
@@ -170,52 +171,103 @@ export default function ChatTecnico() {
   }, []);
 
   const onUser = useCallback(async (data: User) => {
+    console.log("USUARIO LOGADO: ", data);
     setUserLogged(data);
+    userRef.current = data;
     await fetchData(data);
   }, []);
 
-  const onCallOpen = useCallback((data: ChamadosDto) => {
-    if (!userLogged?.tipo_usuario?.includes("ADMINISTRATORS")) {
-      if (!userLogged?.blacklist?.includes(data.cnpj_operador)) return;
-    }
-
-    // Filtra chamados onde tecnico_responsavel === null e o CNPJ está na blacklist
-
-    const playSound = () => {
-      const notificationSound = new Audio("/notify-new-call.mp3");
-      notificationSound.play();
-    };
-
-    if (document.hidden) {
-      // Se a aba não estiver visível, mostra uma notificação
-      if (Notification.permission === "granted") {
-        const notification = new Notification("Nova chamada recebida!", {
-          body: "Clique para abrir o chat",
-          icon: "/notification-icon.png",
-        });
-
-        // Toca o som ao clicar na notificação
-        notification.onclick = () => {
-          window.focus();
-          playSound();
-        };
+  const onCallOpen = useCallback(
+    (data: ChamadosDto) => {
+      console.log("NOVO CHAMADO ABERTO: ", data);
+      console.log("USER LOGGED: ", userRef.current);
+      if (!userRef.current?.tipo_usuario?.includes("ADMINISTRATORS")) {
+        if (!userRef.current?.blacklist?.includes(data.cnpj_operador)) return;
       }
-    } else {
-      playSound();
-    }
-    //playSound();
-    window.parent.postMessage({ type: "NEW_CALL_NOTIFICATION" }, "*");
 
-    setCalls((prev) => {
-      const newCall: ChamadosDto = {
-        ...data,
-        unread_messages: 0,
+      // Filtra chamados onde tecnico_responsavel === null e o CNPJ está na blacklist
+
+      const playSound = () => {
+        const notificationSound = new Audio("/notify-new-call.mp3");
+        notificationSound.play();
       };
-      return prev ? [...prev, newCall] : [newCall];
-    });
+
+      if (document.hidden) {
+        // Se a aba não estiver visível, mostra uma notificação
+        if (Notification.permission === "granted") {
+          const notification = new Notification("Nova chamada recebida!", {
+            body: "Clique para abrir o chat",
+            icon: "/notification-icon.png",
+          });
+
+          // Toca o som ao clicar na notificação
+          notification.onclick = () => {
+            window.focus();
+            playSound();
+          };
+        }
+      } else {
+        playSound();
+      }
+      //playSound();
+      window.parent.postMessage({ type: "NEW_CALL_NOTIFICATION" }, "*");
+
+      setCalls((prev) => {
+        const newCall: ChamadosDto = {
+          ...data,
+          unread_messages: 0,
+        };
+        return prev ? [...prev, newCall] : [newCall];
+      });
+    },
+    [userLogged]
+  );
+
+  //quando o operador loga e existem um chat aberto
+  //os tecnicos que estiver no chat será notificado
+  const handleLogged = useCallback(async (call: ReturnChamadoDto) => {
+    if (call && call.id_chamado === selectedChatIdRef.current) {
+      const n = Math.floor(Math.random() * (9999 - 999 + 1)) + 999;
+      const message: MessageDto = {
+        caminho_arquivo_ftp: "",
+        data: new Date().toISOString(),
+        id_chamado: call.id_chamado,
+        mensagem: `O(a) operador(a) ${call.nome_operador} entrou no chat!`,
+        id_mensagem: n,
+        id_tecnico: call.tecnico_responsavel,
+        nome_arquivo: "",
+        remetente: "",
+        tecnico_responsavel: call.tecnico_responsavel!,
+        nome_tecnico: call.nome_tecnico,
+        system_message: true,
+      };
+
+      setMessages((prev) => [...prev, message]);
+    }
   }, []);
 
-  const handleLogged = useCallback(async (call: Call) => {}, []);
+  const handleOperadorExited = useCallback(async (call: ReturnChamadoDto) => {
+    //verifica se o chamado selecionado é igual ao do operador que deslogou
+
+    if (call && call.id_chamado === selectedChatIdRef.current) {
+      const n = Math.floor(Math.random() * (9999 - 999 + 1)) + 999;
+      const message: MessageDto = {
+        caminho_arquivo_ftp: "",
+        data: new Date().toISOString(),
+        id_chamado: call.id_chamado,
+        mensagem: `O(a) operador(a) ${call.nome_operador} saiu do chat!`,
+        id_mensagem: n,
+        id_tecnico: call.tecnico_responsavel,
+        nome_arquivo: "",
+        remetente: "",
+        tecnico_responsavel: call.tecnico_responsavel!,
+        nome_tecnico: call.nome_tecnico,
+        system_message: true,
+      };
+
+      setMessages((prev) => [...prev, message]);
+    }
+  }, []);
 
   // Efeitos de Drag & Drop
   const handleDragEnter = useCallback((event: DragEvent) => {
@@ -260,6 +312,7 @@ export default function ChatTecnico() {
     eventManager.on("entered-call", onEnteredCall);
     eventManager.on("leaved-call", onLeaveCall);
     eventManager.on("user", onUser);
+    eventManager.on("operador_exited", handleOperadorExited);
 
     return () => {
       eventManager.off("connect", loginSocket);
@@ -271,6 +324,7 @@ export default function ChatTecnico() {
       eventManager.off("entered-call", onEnteredCall);
       eventManager.off("leaved-call", onLeaveCall);
       eventManager.off("user", onUser);
+      eventManager.off("operador_exited", handleOperadorExited);
 
       //socketService.disconnect();
     };
@@ -581,11 +635,11 @@ export default function ChatTecnico() {
     );
   if (error) return <ErrorPage message={error} />;
   return (
-    <div className="flex w-full h-screen overflow-hidden">
+    <div className="flex w-full h-screen overflow-hidden border-none">
       {/* Modal de "Arraste o arquivo aqui" */}
 
       {/* Lado esquerdo - Lista de Chats */}
-      <div className="flex-[1] min-w-72 flex flex-col overflow-hidden">
+      <div className="flex w-[25%] flex-col overflow-hidden border-none">
         <ChatList
           onAcceptCall={handleAcceptCall}
           idUserLogged={idTecnico!}
@@ -596,7 +650,7 @@ export default function ChatTecnico() {
       </div>
 
       {/* Lado direito - Chat */}
-      <div className="bg-blue-400 flex-[4] flex flex-col overflow-hidden">
+      <div className=" flex flex-1 flex-col overflow-hidden">
         <ChatSidebar
           chat={selectedChat}
           idTecnico={idTecnico!}
@@ -604,7 +658,7 @@ export default function ChatTecnico() {
         />
 
         {/* Container de mensagens */}
-        <div className="flex flex-col flex-1 p-6 bg-gray-100 overflow-hidden">
+        <div className="flex flex-col flex-1 p-6 overflow-hidden">
           <div
             ref={containerRef}
             onScroll={handleScroll}
@@ -658,12 +712,12 @@ export default function ChatTecnico() {
           </div>
 
           {/* Input de mensagem fixo no final */}
-          <div className="mt-4 gap-2 flex flex-row">
+          <div className="mt-4 gap-2 flex flex-row ">
             <input
               ref={inputRef}
               type="text"
-              placeholder="Type a message"
-              className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Mensagem..."
+              className="w-full p-2 border border-gray-300 dark:bg-neutral-700 dark:border-slate-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}

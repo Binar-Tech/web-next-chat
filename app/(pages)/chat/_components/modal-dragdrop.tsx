@@ -14,7 +14,7 @@ export default function ModalDragdrop({ open }: ImagePreviewModalProps) {
     <Dialog open={open}>
       <DialogContent className="w-screen h-screen max-w-none p-0 flex items-center justify-center ">
         <DialogTitle className="hidden" /> {/* Oculta o título */}
-        <div className="text-7xl">Arraste seu arquivo aqui</div>
+        <div className="text-4xl">Arraste seu arquivo aqui...</div>
       </DialogContent>
     </Dialog>
   );

@@ -1,3 +1,5 @@
+import { TecnicoDto } from "./tecnico.dto";
+
 export interface ReturnChamadoDto {
   id_chamado: number;
   tecnico_responsavel: string;
@@ -11,4 +13,5 @@ export interface ReturnChamadoDto {
   link_operador: string;
   id_ticket: string;
   nome_tecnico?: string;
+  tecnico?: TecnicoDto;
 }

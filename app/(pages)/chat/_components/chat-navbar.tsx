@@ -6,7 +6,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/app/_components/ui/dropdown-menu";
-import { FaLink, FaPhone } from "react-icons/fa";
+
+import { LucideUser, Moon, Sun } from "lucide-react";
+import { useTheme } from "next-themes";
 import { ChamadosDto } from "../_actions/dtos/chamado.dto";
 import { dropdownEventEmitter } from "../_services/dropdown-event/dropdown-event-emitter";
 
@@ -21,6 +23,7 @@ export default function ChatSidebar({
   idTecnico,
   chat,
 }: ChatSidebarProps) {
+  const { setTheme } = useTheme();
   const verifyEnableButton = (): boolean => {
     if (chat !== undefined && chat?.tecnico_responsavel !== null) {
       return false;
@@ -28,30 +31,38 @@ export default function ChatSidebar({
     return true;
   };
   return (
-    <div className="flex flex-row justify-between bg-white items-center">
+    <div className="flex flex-row justify-between bg-white items-center dark:bg-neutral-700">
       <div className="flex flex-1 justify-start flex-col m-1">
         {chat !== undefined && (
           <>
             <div className="flex flex-row items-center gap-2">
-              <FaLink size={12} className="gap-2" />
-
-              <a
-                href={`https://${chat?.link_operador}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-400 "
-              >
-                {chat?.link_operador}
-              </a>
-            </div>
-            <div className="flex flex-row items-center gap-2">
-              <FaPhone size={12} className="gap-2" />
-              <div className="">{chat?.contato}</div>
+              <LucideUser size={18} className="gap-2" />
+              <div className="text-sm">{chat?.nome_operador}</div>
             </div>
           </>
         )}
       </div>
-      <div className="flex flex-1 flex-row justify-end ">
+      <div className="flex flex-1 flex-row justify-end items-center">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="icon">
+              <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+              <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+              <span className="sr-only">Toggle theme</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setTheme("light")}>
+              Light
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setTheme("dark")}>
+              Dark
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setTheme("system")}>
+              System
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button

@@ -1,4 +1,5 @@
 import { EmpresaDto } from "./empresa.dto";
+import { TecnicoDto } from "./tecnico.dto";
 
 export interface ChamadosDto {
   id_chamado: number;
@@ -14,4 +15,5 @@ export interface ChamadosDto {
   id_ticket: string;
   empresa: EmpresaDto;
   unread_messages: number;
+  tecnico?: TecnicoDto;
 }

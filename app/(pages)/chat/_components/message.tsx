@@ -45,6 +45,10 @@ export default function Message({
     return `${fileBaseUrl}?path=${message.caminho_arquivo_ftp}/${message.nome_arquivo}`;
   };
 
+  const getVideoUrl = () => {
+    return `${fileBaseUrl}/videos?path=${message.caminho_arquivo_ftp}/${message.nome_arquivo}`;
+  };
+
   // Tipo do arquivo baseado na extensão
   const fileType = getFileType(message.nome_arquivo);
 
@@ -67,8 +71,8 @@ export default function Message({
   return (
     <>
       {message.system_message ? (
-        <div className={`flex justify-center mb-4  `}>
-          <div className="max-w-xl min-w-60 p-3 rounded-lg bg-orange-500 text-white">
+        <div className={`flex justify-center mb-4`}>
+          <div className="max-w-xl min-w-60 p-3 rounded-lg bg-orange-500 text-white ">
             <p>{message.mensagem}</p>
           </div>
         </div>
@@ -79,24 +83,28 @@ export default function Message({
           } mb-4`}
         >
           <div
-            className={`max-w-xl min-w-60 p-3 rounded-lg ${
+            className={`max-w-xl min-w-60 p-2 rounded-lg ${
               isCurrentUser
                 ? "bg-blue-500 text-white"
-                : "bg-gray-200 text-gray-800"
+                : "bg-gray-200 dark:bg-neutral-600 text-gray-800 dark: text-foreground"
             }`}
           >
             {/* cabeçalho do box da mensagem, com nome e data */}
             <div className="flex flex-1 w-full flex-row justify-between items-center mb-2">
               <div
-                className={`text-xs  ${
-                  isCurrentUser ? "text-muted" : "text-muted-foreground"
+                className={`text-xs ${
+                  isCurrentUser
+                    ? "text-muted dark:text-foreground"
+                    : "text-muted-foreground dark:text-gray-300"
                 } `}
               >
                 {handleNameUserOnMessageBox()}
               </div>
               <div
                 className={`text-[.7rem] ${
-                  isCurrentUser ? "text-muted" : "text-muted-foreground"
+                  isCurrentUser
+                    ? "text-muted dark:text-foreground"
+                    : "text-muted-foreground dark:text-gray-300"
                 } `}
               >
                 {formatDate(message.data)}
@@ -105,7 +113,7 @@ export default function Message({
 
             {/* Se for texto puro */}
             {message.mensagem && !isYouTubeLink(message.mensagem) && (
-              <p>{message.mensagem}</p>
+              <p className="text-sm dark:text-foreground">{message.mensagem}</p>
             )}
 
             {/* Se for um link do YouTube */}
@@ -135,7 +143,7 @@ export default function Message({
             {fileType === "video" && (
               <div className="w-[250px] h-[440px] ">
                 <video controls className="w-full h-full rounded-lg">
-                  <source src={getFileUrl()} type="video/mp4" />
+                  <source src={getVideoUrl()} type="video/mp4" />
                   Seu navegador não suporta vídeos.
                 </video>
               </div>
@@ -146,11 +154,10 @@ export default function Message({
               <a
                 href={getFileUrl()}
                 download={message.nome_arquivo}
-                target="_blank"
-                rel="noopener noreferrer"
+                rel=""
                 className=" mt-2 bg-blue-700 text-white px-3 py-2 rounded-lg text-sm text-center content-center flex flex-row items-center gap-2"
               >
-                <LucideDownload />
+                <LucideDownload size={18} />
                 {message.nome_arquivo}
               </a>
             )}
@@ -158,11 +165,10 @@ export default function Message({
               <a
                 href={getFileUrl()} // Certifique-se de que `fileUrl` seja um link válido
                 download={message.nome_arquivo} // Define o nome do arquivo para download
-                target="_blank"
-                rel="noopener noreferrer"
+                rel=""
                 className="mt-2 bg-blue-700 text-white px-3 py-2 rounded-lg text-sm text-center flex flex-row items-center gap-2"
               >
-                <LucideDownload />
+                <LucideDownload size={18} />
                 {message.nome_arquivo}
               </a>
             )}
