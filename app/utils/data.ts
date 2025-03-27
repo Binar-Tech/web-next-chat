@@ -1,5 +1,17 @@
 export function formatDate(dateString: string) {
   const date = new Date(dateString);
+
+  // Obtém o fuso horário local em relação ao GMT em minutos (Brasil seria -180, GMT-3)
+  const localOffset = new Date().getTimezoneOffset(); // Em minutos
+  const brazilOffset = -180; // GMT-3, em minutos
+
+  // Verifica a diferença entre o fuso local e o fuso horário do Brasil (GMT-3)
+  const offsetDifference = localOffset - brazilOffset;
+
+  // Ajusta a data considerando a diferença de fuso horário
+  date.setMinutes(date.getMinutes() - offsetDifference);
+
+  // Agora a data está ajustada conforme o fuso horário
   const dateNow = new Date();
 
   // Verifica se a data é de hoje
@@ -8,15 +20,11 @@ export function formatDate(dateString: string) {
     date.getMonth() === dateNow.getMonth() &&
     date.getFullYear() === dateNow.getFullYear();
 
-  // Definir fuso horário para o Brasil
-  const timeZone = "America/Sao_Paulo";
-
   if (isToday) {
     return date.toLocaleTimeString("pt-BR", {
       hour: "2-digit",
       minute: "2-digit",
       hour12: false,
-      timeZone: timeZone, // Define explicitamente o fuso horário para o Brasil
     });
   }
 
@@ -28,7 +36,6 @@ export function formatDate(dateString: string) {
       hour: "2-digit",
       minute: "2-digit",
       hour12: false,
-      timeZone: timeZone, // Define explicitamente o fuso horário para o Brasil
     })
     .replace(",", "");
 }
