@@ -8,15 +8,15 @@ export function formatDate(dateString: string) {
     date.getMonth() === dateNow.getMonth() &&
     date.getFullYear() === dateNow.getFullYear();
 
-  // Obter o fuso horário do usuário automaticamente
-  const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  // Definir fuso horário para o Brasil
+  const timeZone = "America/Sao_Paulo";
 
   if (isToday) {
     return date.toLocaleTimeString("pt-BR", {
       hour: "2-digit",
       minute: "2-digit",
       hour12: false,
-      timeZone: userTimeZone, // Usa o fuso horário do usuário
+      timeZone: timeZone, // Define explicitamente o fuso horário para o Brasil
     });
   }
 
@@ -28,20 +28,17 @@ export function formatDate(dateString: string) {
       hour: "2-digit",
       minute: "2-digit",
       hour12: false,
-      timeZone: userTimeZone, // Usa o fuso horário do usuário
+      timeZone: timeZone, // Define explicitamente o fuso horário para o Brasil
     })
     .replace(",", "");
 }
 
 export function formatDateTimeToDate(dateString: string) {
   const date = new Date(dateString);
-  // Obter o fuso horário do usuário automaticamente
-  const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   return date.toLocaleString("pt-BR", {
     day: "2-digit",
     month: "2-digit",
     year: "2-digit",
-    timeZone: userTimeZone,
   });
 }
 
