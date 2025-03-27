@@ -10,7 +10,7 @@ class SocketService {
 
   constructor() {
     const url = process.env.NEXT_PUBLIC_URL_SOCKET as string;
-    this.client = new SocketClient(url);
+    this.client = new SocketClient("http://187.73.185.68:4000");
   }
 
   connect() {
