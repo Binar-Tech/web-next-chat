@@ -3,7 +3,7 @@ import Loading from "@/app/(pages)/chat/_components/loading";
 import Message from "@/app/(pages)/chat/_components/message";
 import { Button } from "@/app/_components/ui/button";
 import { SendIcon } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MessageDto } from "../_actions/dtos/message-dto";
 
@@ -20,15 +20,16 @@ import ModalDragdrop from "../_components/modal-dragdrop";
 import NewCallSeparator from "../_components/new-call-separator";
 import NewDateSeparator from "../_components/new-date-separator";
 import { useChatMessages } from "../_hooks/useChatMessages";
+import { useSearchParam } from "../_hooks/useSearchParams";
 import { PerfilEnum } from "../_services/enums/perfil.enum";
 import { eventManager } from "../_services/socket/eventManager";
 import { socketService } from "../_services/socket/socketService";
+// Componente para acessar os search params
 
 export default function ChatOperador() {
-  const searchParams = useSearchParams();
-  const nomeOperador = searchParams.get("nomeOperador") || "";
-  const idOperador = searchParams.get("idOperador") || "";
-  const cnpj = searchParams.get("cnpj") ?? null;
+  const nomeOperador = useSearchParam("nomeOperador") || "";
+  const idOperador = useSearchParam("idOperador") || "";
+  const cnpj = useSearchParam("cnpj") ?? null;
 
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [showNewMessageButton, setShowNewMessageButton] = useState(false);
@@ -59,91 +60,108 @@ export default function ChatOperador() {
 
   const router = useRouter();
 
-  const handleNewMessage = useCallback((message: MessageDto) => {
-    setMessages((prev) => {
-      const updatedMessages = [...prev, message]; // Adiciona a mensagem no início
-      return updatedMessages;
-    });
+  const handleNewMessage = useCallback(
+    (message: MessageDto) => {
+      setMessages((prev) => {
+        const updatedMessages = [...prev, message]; // Adiciona a mensagem no início
+        return updatedMessages;
+      });
+    },
+    [setMessages]
+  );
+
+  const onCallUpdated = useCallback(
+    (data: ReturnChamadoDto) => {
+      //cria uma mensagem de sistema para notificar o operador
+
+      const message: MessageDto = {
+        caminho_arquivo_ftp: "",
+        data: new Date().toISOString(),
+        id_chamado: data.id_chamado,
+        mensagem: `Você será atendido pelo analista ${data.nome_tecnico}`,
+        id_mensagem: 1231213123123,
+        id_tecnico: "21312312",
+        nome_arquivo: "",
+        remetente: "",
+        tecnico_responsavel: data.tecnico_responsavel!,
+        nome_tecnico: data.nome_tecnico,
+        system_message: true,
+      };
+      setMessages((prev) => {
+        const updatedMessages = [...prev, message]; // Adiciona a mensagem no início
+        return updatedMessages;
+      });
+    },
+    [setMessages]
+  );
+
+  const onEnteredCall = useCallback(() => {
+    //console.log("entrou na call: ", data);
   }, []);
 
-  const onCallUpdated = useCallback((data: ReturnChamadoDto) => {
-    //cria uma mensagem de sistema para notificar o operador
-
-    const message: MessageDto = {
-      caminho_arquivo_ftp: "",
-      data: new Date().toISOString(),
-      id_chamado: data.id_chamado,
-      mensagem: `Você será atendido pelo analista ${data.nome_tecnico}`,
-      id_mensagem: 1231213123123,
-      id_tecnico: "21312312",
-      nome_arquivo: "",
-      remetente: "",
-      tecnico_responsavel: data.tecnico_responsavel!,
-      nome_tecnico: data.nome_tecnico,
-      system_message: true,
-    };
-    setMessages((prev) => {
-      const updatedMessages = [...prev, message]; // Adiciona a mensagem no início
-      return updatedMessages;
-    });
+  const onLeaveCall = useCallback(() => {
+    //console.log("entrou na call: ", data);
   }, []);
 
-  const onEnteredCall = useCallback((data: any) => {
-    console.log("entrou na call: ", data);
-  }, []);
-
-  const onLeaveCall = useCallback((data: any) => {
-    console.log("entrou na call: ", data);
-  }, []);
-
-  const onCallClosed = useCallback((data: { id: number }) => {
+  const onCallClosed = useCallback(() => {
     router.replace(
-      `/home?cnpj=${cnpj}&nomeOperador=${nomeOperador}&idOperador=${idOperador}`
+      `/home?cnpj=${cnpj!}&nomeOperador=${nomeOperador!}&idOperador=${idOperador!}`
     );
-  }, []);
+  }, [cnpj, idOperador, nomeOperador, router]);
 
-  const handleLogged = useCallback(async (call: Call) => {
-    if (call) {
-      setCall(call);
-      const retorno = await fetchMessages(call.chamado.id_chamado, 1, 10);
-      if (retorno.length < 10 && retorno.length > 0) {
-        await fetchMoreMessages(
-          call.chamado.id_operador.toString(),
-          call.chamado.cnpj_operador,
-          retorno[0].id_mensagem,
-          10
+  const handleLogged = useCallback(
+    async (call: Call) => {
+      if (call) {
+        setCall(call);
+        const retorno = await fetchMessages(call.chamado.id_chamado, 1, 10);
+        if (retorno.length < 10 && retorno.length > 0) {
+          await fetchMoreMessages(
+            call.chamado.id_operador.toString(),
+            call.chamado.cnpj_operador,
+            retorno[0].id_mensagem,
+            10
+          );
+        } else if (
+          retorno &&
+          retorno.length <= 0 &&
+          call.chamado.tecnico_responsavel === null
+        ) {
+          //notifica o user que em breve será atendido por um analista
+          const n = Math.floor(Math.random() * (9999 - 999 + 1)) + 999;
+          const message: MessageDto = {
+            caminho_arquivo_ftp: "",
+            data: new Date().toISOString(),
+            id_chamado: call.chamado.id_chamado,
+            mensagem: `Em breve você será atendido por um de nossos analistas. Enquanto isso pode enviar suas dúvidas para agilizar o atendimento!`,
+            id_mensagem: n,
+            id_tecnico: "",
+            nome_arquivo: "",
+            remetente: "",
+            tecnico_responsavel: "",
+            nome_tecnico: "",
+            system_message: true,
+          };
+          setMessages((prev) => {
+            const updatedMessages = [...prev, message]; // Adiciona a mensagem no início
+            return updatedMessages;
+          });
+        }
+      } else {
+        router.replace(
+          `/home?cnpj=${cnpj}&nomeOperador=${nomeOperador}&idOperador=${idOperador}`
         );
-      } else if (
-        retorno &&
-        retorno.length <= 0 &&
-        call.chamado.tecnico_responsavel === null
-      ) {
-        //notifica o user que em breve será atendido por um analista
-        const n = Math.floor(Math.random() * (9999 - 999 + 1)) + 999;
-        const message: MessageDto = {
-          caminho_arquivo_ftp: "",
-          data: new Date().toISOString(),
-          id_chamado: call.chamado.id_chamado,
-          mensagem: `Em breve você será atendido por um de nossos analistas. Enquanto isso pode enviar suas dúvidas para agilizar o atendimento!`,
-          id_mensagem: n,
-          id_tecnico: "",
-          nome_arquivo: "",
-          remetente: "",
-          tecnico_responsavel: "",
-          nome_tecnico: "",
-          system_message: true,
-        };
-        setMessages((prev) => {
-          const updatedMessages = [...prev, message]; // Adiciona a mensagem no início
-          return updatedMessages;
-        });
       }
-    } else {
-      router.replace(
-        `/home?cnpj=${cnpj}&nomeOperador=${nomeOperador}&idOperador=${idOperador}`
-      );
-    }
-  }, []);
+    },
+    [
+      cnpj,
+      idOperador,
+      nomeOperador,
+      router,
+      fetchMessages,
+      fetchMoreMessages,
+      setMessages,
+    ]
+  );
 
   // Efeitos de Drag & Drop
   const handleDragEnter = useCallback((event: DragEvent) => {
@@ -196,7 +214,15 @@ export default function ChatOperador() {
       eventManager.off("leave-call", onLeaveCall);
       eventManager.off("closed-call", onCallClosed);
     };
-  }, []);
+  }, [
+    "handleLogged",
+    "handleNewMessage",
+    "loginSocket",
+    "onCallClosed",
+    "onCallUpdated",
+    "onEnteredCall",
+    "onLeaveCall",
+  ]);
 
   useEffect(() => {
     window.addEventListener("dragenter", handleDragEnter);
