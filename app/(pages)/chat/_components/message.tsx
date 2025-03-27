@@ -26,7 +26,6 @@ export default function Message({
   const [modalOpen, setModalOpen] = useState(false);
   // Base URL para buscar arquivos
   const fileBaseUrl = process.env.NEXT_PUBLIC_URL_API_FILES;
-  console.log("File Base URL:", fileBaseUrl);
 
   // Função para verificar se é um link do YouTube
   const isYouTubeLink = (url: string) => {
@@ -43,11 +42,11 @@ export default function Message({
 
   // Função para obter a URL do arquivo
   const getFileUrl = () => {
-    return `http://187.73.185.68:4000/files?path=${message.caminho_arquivo_ftp}/${message.nome_arquivo}`;
+    return `${fileBaseUrl}?path=${message.caminho_arquivo_ftp}/${message.nome_arquivo}`;
   };
 
   const getVideoUrl = () => {
-    return `http://187.73.185.68:4000/files/videos?path=${message.caminho_arquivo_ftp}/${message.nome_arquivo}`;
+    return `${fileBaseUrl}/videos?path=${message.caminho_arquivo_ftp}/${message.nome_arquivo}`;
   };
 
   // Tipo do arquivo baseado na extensão
