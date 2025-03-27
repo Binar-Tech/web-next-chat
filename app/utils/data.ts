@@ -5,6 +5,14 @@ export function formatDate(dateString: string) {
   // Adiciona 3 horas à data original (por exemplo, para corrigir a diferença de fuso)
   date.setHours(date.getHours() + 3); // Ajuste de 3 horas a mais
 
+  const brazilOffset = 180;
+  const localOffset = new Date().getTimezoneOffset();
+
+  if (localOffset !== brazilOffset) {
+    const offsetDifference = localOffset - brazilOffset;
+    date.setMinutes(date.getMinutes() - offsetDifference); // Ajusta os minutos para o fuso horário correto
+  }
+
   // Verifica o fuso horário do cliente (exemplo: Brasília está GMT -3)
   const dateNow = new Date();
   const isToday =
@@ -36,6 +44,7 @@ export function formatDate(dateString: string) {
 
 export function formatDateTimeToDate(dateString: string) {
   const date = new Date(dateString);
+  date.setHours(date.getHours() + 3);
   return date.toLocaleString("pt-BR", {
     day: "2-digit",
     month: "2-digit",
