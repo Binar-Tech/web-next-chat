@@ -1,11 +1,11 @@
-import { Button } from "@/app/_components/ui/button";
+import { Button } from "@/app/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/app/_components/ui/dropdown-menu";
+} from "@/app/components/ui/dropdown-menu";
 
 import { LucideUser, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";

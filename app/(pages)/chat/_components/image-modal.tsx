@@ -2,7 +2,7 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
-} from "../../../_components/ui/dialog";
+} from "../../../components/ui/dialog";
 
 interface ImagePreviewModalProps {
   open: boolean;

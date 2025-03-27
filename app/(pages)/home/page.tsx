@@ -1,16 +1,16 @@
 "use client";
 
 import Loading from "@/app/(pages)/chat/_components/loading";
-import { Button } from "@/app/_components/ui/button";
+import { Button } from "@/app/components/ui/button";
 import {
   Card,
   CardContent,
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/app/_components/ui/card";
-import { Input } from "@/app/_components/ui/input";
-import { Label } from "@/app/_components/ui/label";
+} from "@/app/components/ui/card";
+import { Input } from "@/app/components/ui/input";
+import { Label } from "@/app/components/ui/label";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { Loader } from "lucide-react";
 import Image from "next/image";

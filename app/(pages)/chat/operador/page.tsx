@@ -1,13 +1,13 @@
 "use client";
 import Loading from "@/app/(pages)/chat/_components/loading";
 import Message from "@/app/(pages)/chat/_components/message";
-import { Button } from "@/app/_components/ui/button";
+import { Button } from "@/app/components/ui/button";
 import { SendIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MessageDto } from "../_actions/dtos/message-dto";
 
-import { formatDateTimeToDate } from "@/app/_utils/data";
+import { formatDateTimeToDate } from "@/app/utils/data";
 import { FaPaperclip } from "react-icons/fa";
 import { uploadFile } from "../_actions/api";
 import { Call } from "../_actions/dtos/call.interface";

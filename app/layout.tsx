@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Suspense } from "react";
-import { ThemeProvider } from "./_components/theme-provider";
+import { ThemeProvider } from "./components/theme-provider";
 import "./globals.css";
 
 type Params = Promise<{ slug: string }>;

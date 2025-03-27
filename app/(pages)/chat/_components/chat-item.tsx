@@ -1,4 +1,4 @@
-import { Button } from "@/app/_components/ui/button";
+import { Button } from "@/app/components/ui/button";
 import { HoverCard, HoverCardTrigger } from "@radix-ui/react-hover-card";
 import { ChamadosDto } from "../_actions/dtos/chamado.dto";
 import { ChatItemHoverContentCard } from "./hover-content-card";

@@ -1,13 +1,13 @@
 "use client";
-import { getFileType } from "@/app/_utils/file";
+import { getFileType } from "@/app/utils/file";
 import { FileText, Loader } from "lucide-react";
-import { Button } from "../../../_components/ui/button";
+import { Button } from "../../../components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogTitle,
-} from "../../../_components/ui/dialog";
+} from "../../../components/ui/dialog";
 
 interface ImagePreviewModalProps {
   open: boolean;

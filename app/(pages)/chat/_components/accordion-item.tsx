@@ -2,7 +2,7 @@ import {
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "@/app/_components/ui/accordion";
+} from "@/app/components/ui/accordion";
 import ChatItem from "./chat-item";
 
 interface ChatAccordionSectionProps {

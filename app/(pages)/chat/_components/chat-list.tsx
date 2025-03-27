@@ -1,4 +1,4 @@
-import { Accordion } from "@/app/_components/ui/accordion";
+import { Accordion } from "@/app/components/ui/accordion";
 
 import { ChamadosDto } from "../_actions/dtos/chamado.dto";
 import ChatAccordionSection from "./accordion-item";

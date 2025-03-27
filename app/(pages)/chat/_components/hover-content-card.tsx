@@ -1,4 +1,4 @@
-import { HoverCardContent } from "@/app/_components/ui/hover-card";
+import { HoverCardContent } from "@/app/components/ui/hover-card";
 import {
   LucideCheckCircle,
   LucideClock,

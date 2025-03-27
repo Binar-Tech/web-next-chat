@@ -1,7 +1,7 @@
 "use client";
 
-import { formatDate } from "@/app/_utils/data";
-import { getFileType } from "@/app/_utils/file";
+import { formatDate } from "@/app/utils/data";
+import { getFileType } from "@/app/utils/file";
 import { LucideDownload } from "lucide-react";
 import { useState } from "react";
 import { ChamadosDto } from "../_actions/dtos/chamado.dto";

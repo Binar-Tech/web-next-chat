@@ -2,8 +2,8 @@
 import ImagePreviewModal from "@/app/(pages)/chat/_components/image-preview-modal";
 import Loading from "@/app/(pages)/chat/_components/loading";
 import Message from "@/app/(pages)/chat/_components/message";
-import { Button } from "@/app/_components/ui/button";
-import { formatDateTimeToDate } from "@/app/_utils/data";
+import { Button } from "@/app/components/ui/button";
+import { formatDateTimeToDate } from "@/app/utils/data";
 import { SendIcon } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
