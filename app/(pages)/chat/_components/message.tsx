@@ -26,6 +26,7 @@ export default function Message({
   const [modalOpen, setModalOpen] = useState(false);
   // Base URL para buscar arquivos
   const fileBaseUrl = process.env.NEXT_PUBLIC_URL_API_FILES;
+  console.log("File Base URL:", fileBaseUrl);
 
   // Função para verificar se é um link do YouTube
   const isYouTubeLink = (url: string) => {
