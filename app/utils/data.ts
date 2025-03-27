@@ -10,6 +10,9 @@ export function formatDate(dateString: string) {
 
   if (localOffset !== brazilOffset) {
     const offsetDifference = localOffset - brazilOffset;
+    console.log("RESULTADO SOMA: ", offsetDifference);
+    console.log("localOffset: ", localOffset);
+    console.log("brazilOffset: ", brazilOffset);
     date.setMinutes(date.getMinutes() - offsetDifference); // Ajusta os minutos para o fuso horário correto
   }
 
