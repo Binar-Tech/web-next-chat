@@ -9,7 +9,8 @@ class SocketService {
   private client: SocketClient;
 
   constructor() {
-    this.client = new SocketClient("ws://10.0.1.121:4000");
+    const url = process.env.NEXT_PUBLIC_URL_SOCKET as string;
+    this.client = new SocketClient(url);
   }
 
   connect() {
