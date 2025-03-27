@@ -43,11 +43,11 @@ export default function Message({
 
   // Função para obter a URL do arquivo
   const getFileUrl = () => {
-    return `${fileBaseUrl}?path=${message.caminho_arquivo_ftp}/${message.nome_arquivo}`;
+    return `http://187.73.185.68:4000/files?path=${message.caminho_arquivo_ftp}/${message.nome_arquivo}`;
   };
 
   const getVideoUrl = () => {
-    return `${fileBaseUrl}/videos?path=${message.caminho_arquivo_ftp}/${message.nome_arquivo}`;
+    return `http://187.73.185.68:4000/files/videos?path=${message.caminho_arquivo_ftp}/${message.nome_arquivo}`;
   };
 
   // Tipo do arquivo baseado na extensão
