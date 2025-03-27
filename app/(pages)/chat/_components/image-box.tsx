@@ -22,13 +22,12 @@ const ImageComponent = ({ onClickImage, src }: ImageComponentProps) => {
         className="cursor-pointer rounded-lg"
         width={400}
         height={400}
-        layout="intrinsic"
         priority
         onLoad={() => setLoading(false)}
         style={{
           opacity: loading ? 0 : 1, // Esconde a imagem até carregar
           transition: "opacity 0.3s ease-in-out",
-          objectFit: "contain",
+          objectFit: "cover",
         }}
       />
 

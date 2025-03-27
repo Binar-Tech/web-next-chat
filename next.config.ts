@@ -15,6 +15,16 @@ const nextConfig: NextConfig = {
         port: "4000",
       },
       {
+        protocol: "http",
+        hostname: "10.0.1.121", // Substitua pelo domínio das imagens
+        port: "4000",
+      },
+      {
+        protocol: "http",
+        hostname: "187.73.185.68", // Substitua pelo domínio das imagens
+        port: "4000",
+      },
+      {
         protocol: "https",
         hostname: "outracdn.com", // Adicione mais domínios, se necessário
       },
