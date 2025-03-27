@@ -10,11 +10,20 @@ export function formatDate(dateString: string) {
 
   if (localOffset !== brazilOffset) {
     const offsetDifference = localOffset - brazilOffset;
-    const minutes = date.getMinutes() - offsetDifference;
+    let minutes = date.getMinutes() - offsetDifference;
+
+    // Se os minutos forem negativos ou maiores que 60, ajusta corretamente
     if (minutes < 0) {
       const hoursToSubtract = Math.floor(Math.abs(minutes) / 60);
       date.setHours(date.getHours() - hoursToSubtract);
-    } else date.setMinutes(date.getMinutes() - offsetDifference); // Ajusta os minutos para o fuso horário correto
+      date.setMinutes(60 + minutes); // Ajusta os minutos para garantir o valor correto
+    } else if (minutes >= 60) {
+      const hoursToAdd = Math.floor(minutes / 60);
+      date.setHours(date.getHours() + hoursToAdd); // Adiciona as horas extras
+      date.setMinutes(minutes % 60); // Ajusta os minutos restantes
+    } else {
+      date.setMinutes(minutes); // Ajusta os minutos normais
+    }
   }
 
   // Verifica o fuso horário do cliente (exemplo: Brasília está GMT -3)
