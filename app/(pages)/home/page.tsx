@@ -14,11 +14,12 @@ import { Label } from "@/app/components/ui/label";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { Loader } from "lucide-react";
 import Image from "next/image";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import * as yup from "yup";
 
+import { useAuth } from "@/app/hooks/useAuth";
 import { ChamadosDto } from "../chat/_actions/dtos/chamado.dto";
 import { createChamado, fetchCallByIdOperadorAndCnpj } from "./_actions/api";
 import { CreateChamadoDto } from "./_actions/dtos/create-chamado.dto";
@@ -35,36 +36,45 @@ const schema = yup.object().shape({
 });
 
 export default function Home() {
+  const [error, setError] = useState("");
+
+  const { user } = useAuth();
+
+  useEffect(() => {
+    //console.log("USER LOGADO 11: ", user);
+    if (!user) {
+      setError("Erro nos dados do usuário!");
+    }
+  }, [user]);
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const cnpj = searchParams.get("cnpj");
-  const idOperador = searchParams.get("idOperador");
-  const nomeOperador = searchParams.get("nomeOperador");
-  const linkOperador = searchParams.get("linkOperador");
+  // const searchParams = useSearchParams();
+  // const cnpj = searchParams.get("cnpj");
+  // const idOperador = searchParams.get("idOperador");
+  // const nomeOperador = searchParams.get("nomeOperador");
+  // const linkOperador = searchParams.get("linkOperador");
   const [chamado, setChamado] = useState<ChamadosDto | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (cnpj && idOperador) {
+    if (user?.cnpj && user.id) {
       handleLogin();
     }
-  }, [cnpj, idOperador]);
+  }, [user?.cnpj, user?.id]);
 
   const handleLogin = async () => {
     try {
       // Chama a função do servidor passando os parâmetros
 
       const result = await fetchCallByIdOperadorAndCnpj(
-        Number(idOperador),
-        cnpj!
+        Number(user?.id),
+        user?.cnpj!
       );
       setChamado(result);
       if (result) {
         router.push(
-          `/chat/operador?cnpj=${cnpj}&nomeOperador=${nomeOperador}&idOperador=${idOperador}`
+          `/chat/operador?cnpj=${user?.cnpj}&nomeOperador=${user?.nome}&idOperador=${user?.id}`
         );
       }
     } catch (err: any) {
@@ -116,11 +126,11 @@ export default function Home() {
     setIsLoading(true); // Ativa o loading
     console.log("Form enviado:", data);
     const chamado: CreateChamadoDto = {
-      nome_operador: nomeOperador!, // Nome do operador
-      cnpj_operador: cnpj!, // CNPJ do operador
+      nome_operador: user?.nome!, // Nome do operador
+      cnpj_operador: user?.cnpj!, // CNPJ do operador
       contato: data.contato, // Contato do cliente
-      link_operador: linkOperador || "", // Link do operador
-      id_operador: idOperador!, // ID do operador
+      link_operador: user?.link_operador || "", // Link do operador
+      id_operador: user?.id!, // ID do operador
     };
 
     // Chama a função do servidor passando os parâmetros
@@ -128,7 +138,7 @@ export default function Home() {
       const result = await createChamado(chamado);
       if (result) {
         router.push(
-          `/chat/operador?cnpj=${cnpj}&nomeOperador=${nomeOperador}&idOperador=${idOperador}&novoChamado=true`
+          `/chat/operador?cnpj=${user?.cnpj}&nomeOperador=${user?.nome}&idOperador=${user?.id}&novoChamado=true`
         );
       }
     } catch (error) {
@@ -145,7 +155,7 @@ export default function Home() {
             <form onSubmit={handleSubmit(onSubmit)}>
               <Card className="w-full h-auto sm:w-[450px] max-w-md bg-white sm:rounded-lg sm:shadow-lg sm:border">
                 <CardHeader>
-                  <CardTitle className="justify-center">
+                  <CardTitle className="flex justify-center items-center">
                     <Image
                       src="/binar-gptw.svg"
                       alt="Next.js logo"
@@ -160,7 +170,7 @@ export default function Home() {
                     {/* Nome do Operador */}
                     <div className="flex flex-col space-y-1.5">
                       <Label htmlFor="nome">Nome operador</Label>
-                      <Input id="nome" disabled value={nomeOperador!} />
+                      <Input id="nome" disabled value={user?.nome!} />
                     </div>
 
                     {/* Contato */}

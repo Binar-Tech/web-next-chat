@@ -3,9 +3,9 @@ import ImagePreviewModal from "@/app/(pages)/chat/_components/image-preview-moda
 import Loading from "@/app/(pages)/chat/_components/loading";
 import Message from "@/app/(pages)/chat/_components/message";
 import { Button } from "@/app/components/ui/button";
+import { useAuth } from "@/app/hooks/useAuth";
 import { formatDateTimeToDate } from "@/app/utils/data";
 import { SendIcon } from "lucide-react";
-import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FaPaperclip } from "react-icons/fa";
 import {
@@ -36,9 +36,9 @@ import { eventManager } from "../_services/socket/eventManager";
 import { socketService } from "../_services/socket/socketService";
 
 export default function ChatTecnico() {
-  const searchParams = useSearchParams();
-  const nomeTecnico = searchParams.get("nomeTecnico");
-  const idTecnico = searchParams.get("idTecnico");
+  // const searchParams = useSearchParams();
+  // const nomeTecnico = searchParams.get("nomeTecnico");
+  // const idTecnico = searchParams.get("idTecnico");
 
   const [calls, setCalls] = useState<ChamadosDto[] | null>(null);
   const [userLogged, setUserLogged] = useState<User>();
@@ -64,6 +64,15 @@ export default function ChatTecnico() {
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const userRef = useRef<User | null>(null);
+
+  const { user, token } = useAuth();
+
+  useEffect(() => {
+    //console.log("USER LOGADO 11: ", user);
+    if (!user && user!.type != PerfilEnum.TECNICO) {
+      setError("Erro nos dados do usuário!");
+    }
+  }, [user]);
 
   const {
     fetchMessages,
@@ -92,7 +101,7 @@ export default function ChatTecnico() {
 
       const updatedCalls = prevCalls.map((call) => {
         if (
-          call.tecnico_responsavel === idTecnico &&
+          call.tecnico_responsavel === user?.id &&
           (call.id_chamado !== selectedChatIdRef.current ||
             call.tecnico_responsavel == null) &&
           call.id_chamado === message.id_chamado
@@ -115,7 +124,7 @@ export default function ChatTecnico() {
 
     if (document.hidden) {
       if (Notification.permission === "granted") {
-        const notification = new Notification("Nova mensagem de ", {
+        const notification = new Notification("Nova mensagem!", {
           body: "Clique para abrir o chat",
           icon: "/notification-icon.png",
         });
@@ -143,12 +152,12 @@ export default function ChatTecnico() {
     setCalls(
       (prev) => prev?.filter((c) => c.id_chamado !== data.id_chamado) || []
     );
-    if (data.tecnico_responsavel === idTecnico) {
+    if (data.tecnico_responsavel === user?.id) {
       window.parent.postMessage(
         {
           type: "CLOSE_CALL",
           call: data,
-          id_tecnico_logado: idTecnico,
+          id_tecnico_logado: user?.id,
         },
         "*"
       );
@@ -433,10 +442,10 @@ export default function ChatTecnico() {
 
   const loginSocket = async () => {
     const data = {
-      nome: nomeTecnico || "", // Se for null, usa string vazia
+      nome: user?.nome || "", // Se for null, usa string vazia
       cnpj: null, // Se for null, usa undefined (para campo opcional)
       type: PerfilEnum.TECNICO,
-      id: idTecnico || "", // Garante que seja um dos valores esperados
+      id: user?.id || "", // Garante que seja um dos valores esperados
     };
     socketService.login(data);
   };
@@ -486,8 +495,8 @@ export default function ChatTecnico() {
   const handleAcceptCall = async (idChamado: number) => {
     const accetpCall: AcceptCallDto = {
       chatId: idChamado,
-      technicianId: idTecnico!,
-      technicianName: nomeTecnico!,
+      technicianId: user?.id!,
+      technicianName: user?.nome!,
     };
 
     socketService.acceptCall(accetpCall);
@@ -518,7 +527,7 @@ export default function ChatTecnico() {
       id_chamado: selectedChatIdRef.current,
       mensagem: message,
       remetente: PerfilEnum.TECNICO,
-      tecnico_responsavel: nomeTecnico,
+      tecnico_responsavel: user?.nome,
     };
 
     socketService.sendMessage(newMessage);
@@ -616,7 +625,7 @@ export default function ChatTecnico() {
         id_chamado: selectedChat!.id_chamado,
         mensagem: null,
         remetente: PerfilEnum.TECNICO,
-        tecnico_responsavel: nomeTecnico,
+        tecnico_responsavel: user?.nome,
       };
       const result = await uploadFile(fileUpload!, message, selectedChat!);
       socketService.sendMessage(result);
@@ -642,7 +651,7 @@ export default function ChatTecnico() {
       <div className="flex w-[25%] flex-col overflow-hidden border-none">
         <ChatList
           onAcceptCall={handleAcceptCall}
-          idUserLogged={idTecnico!}
+          idUserLogged={user?.id!}
           chatList={calls || []}
           onSelect={handleChatSelect}
           selectedChatId={selectedChatId}
@@ -652,8 +661,9 @@ export default function ChatTecnico() {
       {/* Lado direito - Chat */}
       <div className=" flex flex-1 flex-col overflow-hidden">
         <ChatSidebar
+          token={token!}
           chat={selectedChat}
-          idTecnico={idTecnico!}
+          idTecnico={user?.id!}
           isAdmin={userLogged?.tipo_usuario?.includes("ADMINISTRATORS")}
         />
 
@@ -697,7 +707,7 @@ export default function ChatTecnico() {
                       call={selectedChat!}
                       message={message}
                       isCurrentUser={message.remetente === "TECNICO"}
-                      nomeLogado={nomeTecnico!}
+                      nomeLogado={user?.nome!}
                     />
                   </div>
                 );

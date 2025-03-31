@@ -20,8 +20,8 @@ const ImageComponent = ({ onClickImage, src }: ImageComponentProps) => {
         alt="Preloaded"
         onClick={onClickImage}
         className="cursor-pointer rounded-lg"
-        width={400}
-        height={400}
+        width={300}
+        height={300}
         priority
         onLoad={() => setLoading(false)}
         style={{

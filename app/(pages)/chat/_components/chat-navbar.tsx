@@ -7,7 +7,7 @@ import {
   DropdownMenuTrigger,
 } from "@/app/components/ui/dropdown-menu";
 
-import { LucideUser, Moon, Sun } from "lucide-react";
+import { ExternalLink, LucideUser, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { ChamadosDto } from "../_actions/dtos/chamado.dto";
 import { dropdownEventEmitter } from "../_services/dropdown-event/dropdown-event-emitter";
@@ -16,12 +16,14 @@ interface ChatSidebarProps {
   chat?: ChamadosDto;
   idTecnico: string;
   isAdmin?: boolean;
+  token: string;
 }
 
 export default function ChatSidebar({
   isAdmin = false,
   idTecnico,
   chat,
+  token,
 }: ChatSidebarProps) {
   const { setTheme } = useTheme();
   const verifyEnableButton = (): boolean => {
@@ -42,7 +44,16 @@ export default function ChatSidebar({
           </>
         )}
       </div>
-      <div className="flex flex-1 flex-row justify-end items-center">
+      <div className="flex flex-1 flex-row justify-end items-center gap-1">
+        <a
+          href={`http://187.73.185.68:4001/chat/tecnico?data=${token}`}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <Button variant="outline" size="icon">
+            <ExternalLink className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100" />
+          </Button>
+        </a>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="icon">
@@ -63,11 +74,12 @@ export default function ChatSidebar({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
               variant="outline"
-              className="m-1 bg-blue-400 text-white hover:bg-orange-400 hover:text-white"
+              className="my-1 mr-1 bg-blue-400 text-white hover:bg-orange-400 hover:text-white"
               disabled={verifyEnableButton()}
             >
               Opções

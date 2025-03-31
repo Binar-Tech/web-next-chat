@@ -80,5 +80,6 @@ export function useChatMessages() {
     fetchMessages,
     fetchMoreMessages,
     error,
+    setError,
   }; // Adicionamos o setMessages aqui
 }

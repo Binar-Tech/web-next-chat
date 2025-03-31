@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MessageDto } from "../_actions/dtos/message-dto";
 
+import { useAuth } from "@/app/hooks/useAuth";
 import { formatDateTimeToDate } from "@/app/utils/data";
 import { FaPaperclip } from "react-icons/fa";
 import { uploadFile } from "../_actions/api";
@@ -20,16 +21,24 @@ import ModalDragdrop from "../_components/modal-dragdrop";
 import NewCallSeparator from "../_components/new-call-separator";
 import NewDateSeparator from "../_components/new-date-separator";
 import { useChatMessages } from "../_hooks/useChatMessages";
-import { useSearchParam } from "../_hooks/useSearchParams";
 import { PerfilEnum } from "../_services/enums/perfil.enum";
 import { eventManager } from "../_services/socket/eventManager";
 import { socketService } from "../_services/socket/socketService";
 // Componente para acessar os search params
 
 export default function ChatOperador() {
-  const nomeOperador = useSearchParam("nomeOperador") || "";
-  const idOperador = useSearchParam("idOperador") || "";
-  const cnpj = useSearchParam("cnpj") ?? null;
+  // const nomeOperador = useSearchParam("nomeOperador") || "";
+  // const idOperador = useSearchParam("idOperador") || "";
+  // const cnpj = useSearchParam("cnpj") ?? null;
+  const [errorPage, setErrorPage] = useState("");
+  const { user } = useAuth();
+
+  useEffect(() => {
+    //console.log("USER LOGADO 11: ", user);
+    if (!user && user!.type != PerfilEnum.OPERADOR) {
+      setErrorPage("Erro nos dados do usuário!");
+    }
+  }, [user]);
 
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [showNewMessageButton, setShowNewMessageButton] = useState(false);
@@ -56,6 +65,7 @@ export default function ChatOperador() {
     fetchMessages,
     fetchMoreMessages,
     error,
+    setError,
   } = useChatMessages();
 
   const router = useRouter();
@@ -66,6 +76,20 @@ export default function ChatOperador() {
         const updatedMessages = [...prev, message]; // Adiciona a mensagem no início
         return updatedMessages;
       });
+      if (document.hidden) {
+        if (Notification.permission === "granted") {
+          const notification = new Notification("Nova mensagem!", {
+            body: "Clique para abrir o chat",
+            icon: "/notification-icon.png",
+          });
+
+          // Toca o som ao clicar na notificação
+          notification.onclick = () => {
+            window.focus();
+          };
+        }
+        window.parent.postMessage({ type: "NEW_MESSAGE_NOTIFICATION" }, "*");
+      }
     },
     [setMessages]
   );
@@ -105,9 +129,10 @@ export default function ChatOperador() {
 
   const onCallClosed = useCallback(() => {
     router.replace(
-      `/home?cnpj=${cnpj!}&nomeOperador=${nomeOperador!}&idOperador=${idOperador!}`
+      `/home?cnpj=${user!.cnpj!}&nomeOperador=${user?.nome!}&idOperador=${user!
+        .id!}`
     );
-  }, [cnpj, idOperador, nomeOperador, router]);
+  }, [user?.cnpj, user?.id, user?.nome, router]);
 
   const handleLogged = useCallback(
     async (call: Call) => {
@@ -148,14 +173,14 @@ export default function ChatOperador() {
         }
       } else {
         router.replace(
-          `/home?cnpj=${cnpj}&nomeOperador=${nomeOperador}&idOperador=${idOperador}`
+          `/home?cnpj=${user?.cnpj}&nomeOperador=${user?.nome}&idOperador=${user?.id}`
         );
       }
     },
     [
-      cnpj,
-      idOperador,
-      nomeOperador,
+      user?.cnpj,
+      user?.id,
+      user?.nome,
       router,
       fetchMessages,
       fetchMoreMessages,
@@ -259,10 +284,10 @@ export default function ChatOperador() {
 
   const loginSocket = async () => {
     const data = {
-      nome: nomeOperador || "", // Se for null, usa string vazia
-      cnpj: cnpj, // Se for null, usa undefined (para campo opcional)
+      nome: user!.nome || "", // Se for null, usa string vazia
+      cnpj: user!.cnpj, // Se for null, usa undefined (para campo opcional)
       type: PerfilEnum.OPERADOR,
-      id: idOperador, // Garante que seja um dos valores esperados
+      id: user!.id, // Garante que seja um dos valores esperados
     };
     socketService.login(data);
   };
@@ -416,7 +441,7 @@ export default function ChatOperador() {
       </div>
     );
 
-  if (error) return <ErrorPage message={error} />;
+  if (error || errorPage) return <ErrorPage message={error || errorPage} />;
   return (
     <div className="bg-blue-400 flex-[4] h-full">
       <div className="flex flex-col h-screen p-6 bg-gray-100 overflow-hidden">
@@ -453,7 +478,7 @@ export default function ChatOperador() {
                     call={call?.chamado!}
                     message={message}
                     isCurrentUser={message.remetente === "OPERADOR"}
-                    nomeLogado={nomeOperador!}
+                    nomeLogado={user?.nome!}
                   />
                 </div>
               );
@@ -464,7 +489,7 @@ export default function ChatOperador() {
             //     message={message}
             //     isCurrentUser={message.remetente === "OPERADOR"}
             //     call={call?.chamado!}
-            //     nomeLogado={nomeOperador}
+            //     nomeLogado={user?.nome}
             //   />
             // ))
           }
