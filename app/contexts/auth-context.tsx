@@ -1,23 +1,15 @@
 "use client";
-import { jwtVerify } from "jose";
 import { useSearchParams } from "next/navigation";
 import { createContext, useEffect, useState } from "react";
+import { getLoggedUserByToken } from "../(pages)/chat/_actions/api";
+import { UserAuthDto } from "../(pages)/chat/_actions/dtos/user-auth.dto";
 import Loading from "../(pages)/chat/_components/loading";
-import { PerfilEnum } from "../(pages)/chat/_services/enums/perfil.enum";
 
 interface AuthContextData {
-  user: User | null;
+  user: UserAuthDto | null;
   logout: () => void;
   isAuthenticated: boolean;
   token?: string;
-}
-
-interface User {
-  id: string;
-  nome: string;
-  cnpj?: string | null;
-  type: PerfilEnum;
-  link_operador?: string | null;
 }
 
 const SECRET_KEY = "binar132878";
@@ -27,10 +19,10 @@ export const AuthContext = createContext<AuthContextData | undefined>(
 );
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<UserAuthDto | null>(null);
   const [token, setToken] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true); // Estado de carregamento
-  const [error, setError] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -43,23 +35,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const verifyToken = async () => {
         try {
           // Verifica e decodifica o token com jose
-          const secretKey = new TextEncoder().encode("binar132878");
-          const { payload } = await jwtVerify(
-            tokenjwt,
-            secretKey // Chave secreta como Uint8Array
-          );
-
-          if (payload && typeof payload === "object" && "id" in payload) {
-            setUser(payload as unknown as User);
-            console.log("Token válido:", payload);
-          } else {
-            console.error("Estrutura do token inválida");
-            setUser(null);
+          const result = await getLoggedUserByToken(tokenjwt);
+          if (result) {
+            console.log("RETORNO: ", result);
+            setUser(result);
           }
         } catch (error) {
           console.error("Erro ao verificar o token:", error);
           setUser(null);
-          setError(error as string);
+          setError(error instanceof Error ? error.message : String(error));
         } finally {
           setIsLoading(false);
         }

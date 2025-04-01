@@ -3,6 +3,7 @@
 import { ChamadosDto } from "./dtos/chamado.dto";
 import { CreateMessageDto } from "./dtos/create-message.dto";
 import { MessageDto } from "./dtos/message-dto";
+import { UserAuthDto } from "./dtos/user-auth.dto";
 
 export async function fetchOpennedCals(): Promise<ChamadosDto[]> {
   const fileBaseUrl = process.env.NEXT_PUBLIC_URL_API;
@@ -34,6 +35,21 @@ export async function fetchMessagesByIdChamado(
   }
 
   const data: MessageDto[] = await response.json();
+  return data;
+}
+
+export async function getLoggedUserByToken(
+  token: string
+): Promise<UserAuthDto> {
+  // Aqui você faz a lógica da API, por exemplo, uma chamada de fetch
+  const fileBaseUrl = process.env.NEXT_PUBLIC_URL_API;
+  const response = await fetch(`${fileBaseUrl}/auth/${token}`);
+
+  if (!response.ok) {
+    throw new Error("Erro ao chamar a API");
+  }
+
+  const data: UserAuthDto = await response.json();
   return data;
 }
 
