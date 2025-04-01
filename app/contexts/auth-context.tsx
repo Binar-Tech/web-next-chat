@@ -43,9 +43,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const verifyToken = async () => {
         try {
           // Verifica e decodifica o token com jose
+          const secretKey = new TextEncoder().encode("binar132878");
           const { payload } = await jwtVerify(
             tokenjwt,
-            new TextEncoder().encode(SECRET_KEY) // Chave secreta como Uint8Array
+            secretKey // Chave secreta como Uint8Array
           );
 
           if (payload && typeof payload === "object" && "id" in payload) {
