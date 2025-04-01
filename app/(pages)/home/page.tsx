@@ -38,7 +38,7 @@ const schema = yup.object().shape({
 export default function Home() {
   const [error, setError] = useState("");
 
-  const { user } = useAuth();
+  const { user, token } = useAuth();
 
   useEffect(() => {
     //console.log("USER LOGADO 11: ", user);
@@ -73,9 +73,7 @@ export default function Home() {
       );
       setChamado(result);
       if (result) {
-        router.push(
-          `/chat/operador?cnpj=${user?.cnpj}&nomeOperador=${user?.nome}&idOperador=${user?.id}`
-        );
+        router.push(`/chat/operador?data=${token}`);
       }
     } catch (err: any) {
       setError(err.message);

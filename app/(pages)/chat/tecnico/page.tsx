@@ -115,7 +115,6 @@ export default function ChatTecnico() {
           };
         }
 
-        console.log("call mantido: ", call);
         return call;
       });
 
@@ -123,10 +122,11 @@ export default function ChatTecnico() {
     });
 
     if (document.hidden) {
+      console.log("EXECUTAR A NOTIFICAÇÃO");
+      console.log("Notification.permission: ", Notification.permission);
       if (Notification.permission === "granted") {
         const notification = new Notification("Nova mensagem!", {
           body: "Clique para abrir o chat",
-          icon: "/notification-icon.png",
         });
 
         // Toca o som ao clicar na notificação
@@ -180,7 +180,6 @@ export default function ChatTecnico() {
   }, []);
 
   const onUser = useCallback(async (data: User) => {
-    console.log("USUARIO LOGADO: ", data);
     setUserLogged(data);
     userRef.current = data;
     await fetchData(data);
@@ -668,7 +667,7 @@ export default function ChatTecnico() {
         />
 
         {/* Container de mensagens */}
-        <div className="flex flex-col flex-1 p-6 overflow-hidden">
+        <div className="flex flex-col flex-1 p-2 overflow-hidden">
           <div
             ref={containerRef}
             onScroll={handleScroll}

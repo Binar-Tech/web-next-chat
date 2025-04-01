@@ -80,7 +80,7 @@ export default function Message({
         <div
           className={`flex ${
             isCurrentUser ? "justify-end" : "justify-start"
-          } mb-4`}
+          } mb-2`}
         >
           <div
             className={`max-w-xl min-w-60 p-2 rounded-lg ${

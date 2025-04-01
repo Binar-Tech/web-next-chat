@@ -444,7 +444,7 @@ export default function ChatOperador() {
   if (error || errorPage) return <ErrorPage message={error || errorPage} />;
   return (
     <div className="bg-blue-400 flex-[4] h-full">
-      <div className="flex flex-col h-screen p-6 bg-gray-100 overflow-hidden">
+      <div className="flex flex-col h-screen p-2 bg-gray-100 overflow-hidden">
         <div
           ref={containerRef}
           onScroll={handleScroll}
@@ -504,7 +504,7 @@ export default function ChatOperador() {
           <input
             ref={inputRef}
             type="text"
-            placeholder="Type a message"
+            placeholder="Mensagem..."
             className="w-full p-2 border border-gray-30 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={message}
             onChange={(e) => setMessage(e.target.value)}

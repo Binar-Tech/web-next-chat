@@ -12,8 +12,6 @@ interface AuthContextData {
   token?: string;
 }
 
-const SECRET_KEY = "binar132878";
-
 export const AuthContext = createContext<AuthContextData | undefined>(
   undefined
 );
@@ -27,7 +25,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     const tokenjwt = searchParams.get("data");
-    console.log("Token JWT recebido:", tokenjwt);
 
     if (tokenjwt) {
       setToken(tokenjwt);
@@ -37,7 +34,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           // Verifica e decodifica o token com jose
           const result = await getLoggedUserByToken(tokenjwt);
           if (result) {
-            console.log("RETORNO: ", result);
             setUser(result);
           }
         } catch (error) {
@@ -50,6 +46,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       };
 
       verifyToken();
+    } else if (user != null) {
+      return;
     } else {
       console.error("Token não encontrado na URL");
       setUser(null);
