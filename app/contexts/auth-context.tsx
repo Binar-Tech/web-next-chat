@@ -30,6 +30,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true); // Estado de carregamento
+  const [error, setError] = useState("");
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -55,8 +56,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setUser(null);
           }
         } catch (error) {
-          //console.error("Erro ao verificar o token:", error);
+          console.error("Erro ao verificar o token:", error);
           setUser(null);
+          setError(error as string);
         } finally {
           setIsLoading(false);
         }

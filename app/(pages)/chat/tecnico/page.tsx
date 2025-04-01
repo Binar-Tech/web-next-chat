@@ -69,7 +69,7 @@ export default function ChatTecnico() {
 
   useEffect(() => {
     //console.log("USER LOGADO 11: ", user);
-    if (!user && user!.type != PerfilEnum.TECNICO) {
+    if (user != null && user!.type != PerfilEnum.TECNICO) {
       setError("Erro nos dados do usuário!");
     }
   }, [user]);
