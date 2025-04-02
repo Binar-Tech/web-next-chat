@@ -91,7 +91,7 @@ export async function closeCall(chamado: number): Promise<MessageDto> {
 
 export async function closeCallWithoutTicket(
   chamado: number
-): Promise<MessageDto> {
+): Promise<ChamadosDto> {
   // Aqui você faz a lógica da API, por exemplo, uma chamada de fetch
   const fileBaseUrl = process.env.NEXT_PUBLIC_URL_API;
   const response = await fetch(
@@ -105,7 +105,7 @@ export async function closeCallWithoutTicket(
     throw new Error("Erro ao chamar a API");
   }
 
-  const data: MessageDto = await response.json();
+  const data: ChamadosDto = await response.json();
   return data;
 }
 

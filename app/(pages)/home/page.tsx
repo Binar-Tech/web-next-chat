@@ -2,13 +2,6 @@
 
 import Loading from "@/app/(pages)/chat/_components/loading";
 import { Button } from "@/app/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/app/components/ui/card";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -146,63 +139,58 @@ export default function Home() {
     }
   }
   return (
-    <div className="flex items-center justify-center h-screen p-4 sm:p-10">
+    <div className="flex items-center justify-center min-h-screen p-4 sm:p-10 bg-gray-100">
       {!chamado && (
-        <main className="flex flex-col items-center sm:items-start w-full">
-          <div className="flex items-center justify-center w-full">
-            <form onSubmit={handleSubmit(onSubmit)}>
-              <Card className="w-full h-full sm:w-[450px] sm:h-auto max-w-md bg-white sm:rounded-lg sm:shadow-lg sm:border flex flex-col">
-                <CardHeader>
-                  <CardTitle className="flex justify-center items-center">
-                    <Image
-                      src="/binar-gptw.svg"
-                      alt="Next.js logo"
-                      width={180}
-                      height={38}
-                      priority
-                    />
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid w-full items-center gap-4">
-                    {/* Nome do Operador */}
-                    <div className="flex flex-col space-y-1.5">
-                      <Label htmlFor="nome">Nome operador</Label>
-                      <Input id="nome" disabled value={user?.nome!} />
-                    </div>
+        <main className="flex flex-col items-center w-full h-full">
+          <div className="flex items-center justify-center w-full h-full">
+            <form
+              onSubmit={handleSubmit(onSubmit)}
+              className="w-full h-full flex flex-col justify-center bg-white shadow-lg border rounded-none sm:rounded-lg sm:w-[450px] sm:h-auto p-6"
+            >
+              {/* Logo */}
+              <div className="flex justify-center items-center mb-6">
+                <Image
+                  src="/binar-gptw.svg"
+                  alt="Next.js logo"
+                  width={180}
+                  height={38}
+                  priority
+                />
+              </div>
 
-                    {/* Contato */}
-                    <div className="flex flex-col space-y-1.5">
-                      <Label htmlFor="contato">
-                        Contato (Email ou Telefone)
-                      </Label>
-                      <Input
-                        id="contato"
-                        placeholder="Contato Email ou Telefone"
-                        {...register("contato")}
-                      />
-                      {errors.contato && (
-                        <p className="text-red-500 text-sm">
-                          {errors.contato.message}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-                <CardFooter className="flex justify-between">
-                  <Button
-                    type="submit"
-                    className="bg-orange-500 w-full flex items-center justify-center gap-2"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? (
-                      <Loader className="animate-spin" size={18} />
-                    ) : (
-                      "Iniciar chat"
-                    )}
-                  </Button>
-                </CardFooter>
-              </Card>
+              {/* Nome do Operador */}
+              <div className="flex flex-col space-y-1.5 mb-4">
+                <Label htmlFor="nome">Nome operador</Label>
+                <Input id="nome" disabled value={user?.nome!} />
+              </div>
+
+              {/* Contato */}
+              <div className="flex flex-col space-y-1.5 mb-6">
+                <Label htmlFor="contato">Contato (Email ou Telefone)</Label>
+                <Input
+                  id="contato"
+                  placeholder="Contato Email ou Telefone"
+                  {...register("contato")}
+                />
+                {errors.contato && (
+                  <p className="text-red-500 text-sm">
+                    {errors.contato.message}
+                  </p>
+                )}
+              </div>
+
+              {/* Botão */}
+              <Button
+                type="submit"
+                className="bg-orange-500 w-full flex items-center justify-center gap-2 mt-auto"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <Loader className="animate-spin" size={18} />
+                ) : (
+                  "Iniciar chat"
+                )}
+              </Button>
             </form>
           </div>
         </main>

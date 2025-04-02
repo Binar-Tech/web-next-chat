@@ -146,8 +146,6 @@ export default function ChatTecnico() {
 
   //quando o tecnico fecha um chamado
   const onCallClosed = useCallback((data: ChamadosDto) => {
-    console.log("ENTROU NO CLOSE CALL");
-
     setCalls(
       (prev) => prev?.filter((c) => c.id_chamado !== data.id_chamado) || []
     );
@@ -163,7 +161,21 @@ export default function ChatTecnico() {
     }
 
     if (selectedChatIdRef.current === data.id_chamado) {
-      console.log("É O CHAT SELECIONADO");
+      setMessages(() => []);
+      setSelectedChatId(0);
+      setSelectedChat(undefined);
+    }
+  }, []);
+
+  const onCallClosedWithouTicket = useCallback((data: ChamadosDto) => {
+    console.log("FECHOU NO WITHOUTTECNICO: ", data);
+    setCalls(
+      (prev) => prev?.filter((c) => c.id_chamado !== data.id_chamado) || []
+    );
+    if (data.tecnico_responsavel === user?.id) {
+    }
+
+    if (selectedChatIdRef.current === data.id_chamado) {
       setMessages(() => []);
       setSelectedChatId(0);
       setSelectedChat(undefined);
@@ -390,7 +402,8 @@ export default function ChatTecnico() {
         await closeCall(selectedChatIdRef.current);
         break;
       case "encerrarOffTicket":
-        await closeCallWithoutTicket(selectedChatIdRef.current);
+        const result = await closeCallWithoutTicket(selectedChatIdRef.current);
+        onCallClosedWithouTicket(result);
         break;
       case "entrar":
         await enterCall(selectedChatIdRef.current, RoleEnum.SUPPORT);
