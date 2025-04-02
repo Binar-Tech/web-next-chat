@@ -28,6 +28,10 @@ const nextConfig: NextConfig = {
         hostname: "187.73.185.68", // Substitua pelo domínio das imagens
         port: "4000",
       },
+      {
+        protocol: "https",
+        hostname: "btchatapi.biofinger.com.br", // Substitua pelo domínio das imagens
+      },
     ],
   },
 };
