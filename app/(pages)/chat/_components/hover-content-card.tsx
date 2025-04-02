@@ -38,7 +38,7 @@ export function ChatItemHoverContentCard({ chamado }: HoverContentCardProps) {
 
       const updateTimer = () => {
         const date = new Date();
-        date.setHours(date.getHours() + 3);
+        //date.setHours(date.getHours() + 3);
         const now = new Date().getTime();
         const diffInSeconds = Math.floor((now - abertura) / 1000);
         setTimeElapsed(formatTimeElapsed(diffInSeconds));

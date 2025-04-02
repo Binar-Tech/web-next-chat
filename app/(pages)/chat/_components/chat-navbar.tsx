@@ -33,7 +33,7 @@ export default function ChatSidebar({
     return true;
   };
   return (
-    <div className="flex flex-row justify-between bg-white items-center dark:bg-neutral-700">
+    <div className="flex flex-row justify-between bg-gray-100 items-center dark:bg-neutral-700">
       <div className="flex flex-1 justify-start flex-col m-1">
         {chat !== undefined && (
           <>

@@ -151,7 +151,7 @@ export default function Home() {
         <main className="flex flex-col items-center sm:items-start w-full">
           <div className="flex items-center justify-center w-full">
             <form onSubmit={handleSubmit(onSubmit)}>
-              <Card className="w-full h-auto sm:w-[450px] max-w-md bg-white sm:rounded-lg sm:shadow-lg sm:border">
+              <Card className="w-full h-full sm:w-[450px] sm:h-auto max-w-md bg-white sm:rounded-lg sm:shadow-lg sm:border flex flex-col">
                 <CardHeader>
                   <CardTitle className="flex justify-center items-center">
                     <Image

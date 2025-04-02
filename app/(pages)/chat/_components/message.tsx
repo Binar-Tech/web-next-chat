@@ -92,10 +92,10 @@ export default function Message({
             {/* cabeçalho do box da mensagem, com nome e data */}
             <div className="flex flex-1 w-full flex-row justify-between items-center mb-2">
               <div
-                className={`text-xs ${
+                className={`text-xs pr-4 ${
                   isCurrentUser
-                    ? "text-muted dark:text-foreground"
-                    : "text-muted-foreground dark:text-gray-300"
+                    ? "text-muted dark:text-foreground font-semibold font-serif"
+                    : "text-orange-400 dark:text-orange-400 font-extrabold font-serif"
                 } `}
               >
                 {handleNameUserOnMessageBox()}

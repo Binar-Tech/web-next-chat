@@ -35,7 +35,7 @@ export default function ChatItem({
             </h2>
             <div className="text-xs gap-2">
               <div className="flex flex-row pb-1 items-center gap-1">
-                <p className=" text-gray-400 dark:text-gray-300">Ténico: </p>
+                <p className=" text-gray-400 dark:text-gray-300">Técnico: </p>
                 <p className=" text-gray-500 font-semibold dark:text-gray-200">
                   {chamado.tecnico?.name ?? ""}
                 </p>
