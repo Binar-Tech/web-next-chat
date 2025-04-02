@@ -39,6 +39,7 @@ export default function ChatTecnico() {
   // const searchParams = useSearchParams();
   // const nomeTecnico = searchParams.get("nomeTecnico");
   // const idTecnico = searchParams.get("idTecnico");
+  const { user, token, isAuthenticated } = useAuth();
 
   const [calls, setCalls] = useState<ChamadosDto[] | null>(null);
   const [userLogged, setUserLogged] = useState<User>();
@@ -64,8 +65,6 @@ export default function ChatTecnico() {
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const userRef = useRef<User | null>(null);
-
-  const { user, token } = useAuth();
 
   useEffect(() => {
     //console.log("USER LOGADO 11: ", user);
@@ -642,6 +641,8 @@ export default function ChatTecnico() {
       </div>
     );
   if (error) return <ErrorPage message={error} />;
+  if (!isAuthenticated)
+    return <ErrorPage message={"Usuário não autenticado!"} />;
   return (
     <div className="flex w-full h-screen overflow-hidden border-none">
       {/* Modal de "Arraste o arquivo aqui" */}

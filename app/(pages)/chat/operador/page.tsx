@@ -30,15 +30,8 @@ export default function ChatOperador() {
   // const nomeOperador = useSearchParam("nomeOperador") || "";
   // const idOperador = useSearchParam("idOperador") || "";
   // const cnpj = useSearchParam("cnpj") ?? null;
+  const { user, isAuthenticated } = useAuth();
   const [errorPage, setErrorPage] = useState("");
-  const { user } = useAuth();
-
-  useEffect(() => {
-    //console.log("USER LOGADO 11: ", user);
-    if (!user && user!.type != PerfilEnum.OPERADOR) {
-      setErrorPage("Erro nos dados do usuário!");
-    }
-  }, [user]);
 
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [showNewMessageButton, setShowNewMessageButton] = useState(false);
@@ -67,6 +60,13 @@ export default function ChatOperador() {
     error,
     setError,
   } = useChatMessages();
+
+  useEffect(() => {
+    //console.log("USER LOGADO 11: ", user);
+    if (!user && user!.type != PerfilEnum.OPERADOR) {
+      setErrorPage("Erro nos dados do usuário!");
+    }
+  }, [user]);
 
   const router = useRouter();
 
@@ -441,7 +441,9 @@ export default function ChatOperador() {
       </div>
     );
 
-  if (error || errorPage) return <ErrorPage message={error || errorPage} />;
+  if (error) return <ErrorPage message={error} />;
+  if (!isAuthenticated)
+    return <ErrorPage message={"Usuário não autenticado!"} />;
   return (
     <div className="bg-blue-400 flex-[4] h-full">
       <div className="flex flex-col h-screen p-2 bg-gray-100 overflow-hidden">
