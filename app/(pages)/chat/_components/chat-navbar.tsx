@@ -46,7 +46,7 @@ export default function ChatSidebar({
       </div>
       <div className="flex flex-1 flex-row justify-end items-center gap-1">
         <a
-          href={`http://187.73.185.68:4001/chat/tecnico?data=${token}`}
+          href={`https://btchat.biofinger.com.br/chat/tecnico?data=${token}`}
           target="_blank"
           rel="noopener noreferrer"
         >
