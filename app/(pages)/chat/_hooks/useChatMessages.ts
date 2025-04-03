@@ -24,11 +24,11 @@ export function useChatMessages() {
         setMessages(reversedMessages);
         return result; // ✅ Retornamos as mensagens corretamente
       } else {
-        console.error("Erro: Dados inválidos recebidos", result);
+        //console.error("Erro: Dados inválidos recebidos", result);
         return []; // ✅ Retornamos um array vazio em caso de erro
       }
     } catch (error: any) {
-      console.error("Erro ao buscar mensagens:", error);
+      //console.error("Erro ao buscar mensagens:", error);
       setError(error);
       return []; // ✅ Garantimos um retorno consistente
     } finally {
@@ -42,7 +42,6 @@ export function useChatMessages() {
     id_mensagem: number,
     limit: number
   ): Promise<MessageDto[]> => {
-    console.log("BUSCANDO Mais MENSAGENS DO CHAT SELECIONADO");
     setLoadingMoreMessages(true);
     try {
       const result = await fetchMoreMessagesApi(
@@ -51,7 +50,7 @@ export function useChatMessages() {
         id_mensagem,
         limit
       );
-      console.log("RETORNO DA BUSCA: ", result);
+
       if (Array.isArray(result)) {
         const reversedMessages = result.reverse(); // Inverte a ordem das mensagens
         if (result.length > 0) {
@@ -60,11 +59,11 @@ export function useChatMessages() {
         // Adiciona as novas mensagens no início
         return result; // ✅ Retornamos as mensagens corretamente
       } else {
-        console.error("Erro: Dados inválidos recebidos", result);
+        //console.error("Erro: Dados inválidos recebidos", result);
         return []; // ✅ Retornamos um array vazio em caso de erro
       }
     } catch (error: any) {
-      console.error("Erro ao buscar mensagens:", error);
+      //console.error("Erro ao buscar mensagens:", error);
       setError(error);
       return []; // ✅ Garantimos um retorno consistente
     } finally {

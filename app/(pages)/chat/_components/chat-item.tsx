@@ -23,32 +23,86 @@ export default function ChatItem({
       <HoverCardTrigger>
         <div
           onClick={() => onSelect(chamado.id_chamado)}
-          className={`flex items-center py-2 px-2 cursor-pointer rounded-sm ${
+          className={`flex items-center py-2 px-2 cursor-pointer rounded-sm transition-all duration-650 ${
             isSelected
               ? "bg-[#e3e3fd] dark:bg-gray-700"
-              : "hover:bg-blue-300 dark:hover:bg-slate-700"
+              : chamado.tecnico_responsavel != null
+              ? "hover:bg-blue-300 dark:hover:bg-slate-700"
+              : "hover:bg-blue-300 bg-red-400 animate-pulse"
           }`}
         >
           <div className="flex-1 flex flex-col items-start gap-1">
             <h2>
-              <p className="font-bold text-sm">{chamado.nome_operador}</p>
+              <p
+                className={`font-bold text-sm ${
+                  chamado.tecnico_responsavel === null
+                    ? "text-white"
+                    : "text-gray-900 dark:text-gray-100"
+                }`}
+              >
+                {chamado.nome_operador}
+              </p>
             </h2>
-            <div className="text-xs gap-2">
+            <div
+              className={`text-xs gap-2 ${
+                chamado.tecnico_responsavel === null
+                  ? "text-white"
+                  : "text-gray-500"
+              }`}
+            >
+              {chamado.tecnico?.name != null && (
+                <div className="flex flex-row pb-1 items-center gap-1">
+                  <p
+                    className={`text-gray-400 dark:text-gray-300 ${
+                      chamado.tecnico_responsavel === null ? "text-white" : ""
+                    }`}
+                  >
+                    Técnico:
+                  </p>
+                  <p
+                    className={`font-semibold ${
+                      chamado.tecnico_responsavel === null
+                        ? "text-white"
+                        : "text-gray-500 dark:text-gray-200"
+                    }`}
+                  >
+                    {chamado.tecnico?.name ?? ""}
+                  </p>
+                </div>
+              )}
               <div className="flex flex-row pb-1 items-center gap-1">
-                <p className=" text-gray-400 dark:text-gray-300">Técnico: </p>
-                <p className=" text-gray-500 font-semibold dark:text-gray-200">
-                  {chamado.tecnico?.name ?? ""}
+                <p
+                  className={`text-gray-400 dark:text-gray-300 ${
+                    chamado.tecnico_responsavel === null ? "text-white" : ""
+                  }`}
+                >
+                  Empresa:
                 </p>
-              </div>
-              <div className="flex flex-row pb-1 items-center gap-1">
-                <p className=" text-gray-400 dark:text-gray-300">Empresa: </p>
-                <p className=" text-gray-500 dark:text-gray-200">
+                <p
+                  className={`${
+                    chamado.tecnico_responsavel === null
+                      ? "text-white"
+                      : "text-gray-500 dark:text-gray-200"
+                  }`}
+                >
                   {chamado.empresa.fantasia}
                 </p>
               </div>
               <div className="flex flex-row items-center gap-1">
-                <p className=" text-gray-400 dark:text-gray-300">CNPJ: </p>
-                <p className=" text-gray-500 dark:text-gray-200">
+                <p
+                  className={`text-gray-400 dark:text-gray-300 ${
+                    chamado.tecnico_responsavel === null ? "text-white" : ""
+                  }`}
+                >
+                  CNPJ:
+                </p>
+                <p
+                  className={`${
+                    chamado.tecnico_responsavel === null
+                      ? "text-white"
+                      : "text-gray-500 dark:text-gray-200"
+                  }`}
+                >
                   {chamado.cnpj_operador}
                 </p>
               </div>

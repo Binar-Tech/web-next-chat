@@ -37,7 +37,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setUser(result);
           }
         } catch (error) {
-          console.error("Erro ao verificar o token:", error);
+          //console.error("Erro ao verificar o token:", error);
           setUser(null);
           setError(error instanceof Error ? error.message : String(error));
         } finally {
@@ -49,7 +49,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } else if (user != null) {
       return;
     } else {
-      console.error("Token não encontrado na URL");
+      //console.error("Token não encontrado na URL");
       setUser(null);
       setIsLoading(false);
     } // Finaliza o carregamento independentemente do token

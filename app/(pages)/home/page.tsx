@@ -115,7 +115,7 @@ export default function Home() {
 
   async function onSubmit(data: any) {
     setIsLoading(true); // Ativa o loading
-    console.log("Form enviado:", data);
+
     const chamado: CreateChamadoDto = {
       nome_operador: user?.nome!, // Nome do operador
       cnpj_operador: user?.cnpj!, // CNPJ do operador
@@ -128,12 +128,9 @@ export default function Home() {
     try {
       const result = await createChamado(chamado);
       if (result) {
-        router.push(
-          `/chat/operador?cnpj=${user?.cnpj}&nomeOperador=${user?.nome}&idOperador=${user?.id}&novoChamado=true`
-        );
+        router.push(`/chat/operador?data=${token}&novoChamado=true`);
       }
     } catch (error) {
-      console.log("Erro ao criar chamado", error);
     } finally {
       setIsLoading(false);
     }

@@ -76,7 +76,7 @@ export async function fetchMoreMessagesApi(
 export async function closeCall(chamado: number): Promise<MessageDto> {
   // Aqui você faz a lógica da API, por exemplo, uma chamada de fetch
   const fileBaseUrl = process.env.NEXT_PUBLIC_URL_API;
-  console.log("idchamado: ", chamado);
+
   const response = await fetch(`${fileBaseUrl}/chamados/${chamado}`, {
     method: "PATCH",
   });

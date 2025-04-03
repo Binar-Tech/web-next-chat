@@ -30,7 +30,7 @@ export default function ChatOperador() {
   // const nomeOperador = useSearchParam("nomeOperador") || "";
   // const idOperador = useSearchParam("idOperador") || "";
   // const cnpj = useSearchParam("cnpj") ?? null;
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, token } = useAuth();
   const [errorPage, setErrorPage] = useState("");
 
   const [isAtBottom, setIsAtBottom] = useState(true);
@@ -172,9 +172,7 @@ export default function ChatOperador() {
           });
         }
       } else {
-        router.replace(
-          `/home?cnpj=${user?.cnpj}&nomeOperador=${user?.nome}&idOperador=${user?.id}`
-        );
+        router.replace(`/home?data=${token}`);
       }
     },
     [
@@ -190,7 +188,6 @@ export default function ChatOperador() {
 
   // Efeitos de Drag & Drop
   const handleDragEnter = useCallback((event: DragEvent) => {
-    console.log("ENTROU NO DRAG ENTER");
     event.preventDefault();
     setModalDragdrop(true);
   }, []);

@@ -121,8 +121,6 @@ export default function ChatTecnico() {
     });
 
     if (document.hidden) {
-      console.log("EXECUTAR A NOTIFICAÇÃO");
-      console.log("Notification.permission: ", Notification.permission);
       if (Notification.permission === "granted") {
         const notification = new Notification("Nova mensagem!", {
           body: "Clique para abrir o chat",
@@ -168,7 +166,6 @@ export default function ChatTecnico() {
   }, []);
 
   const onCallClosedWithouTicket = useCallback((data: ChamadosDto) => {
-    console.log("FECHOU NO WITHOUTTECNICO: ", data);
     setCalls(
       (prev) => prev?.filter((c) => c.id_chamado !== data.id_chamado) || []
     );
@@ -182,13 +179,9 @@ export default function ChatTecnico() {
     }
   }, []);
 
-  const onEnteredCall = useCallback((data: any) => {
-    console.log("entrou na call: ", data);
-  }, []);
+  const onEnteredCall = useCallback((data: any) => {}, []);
 
-  const onLeaveCall = useCallback((data: any) => {
-    console.log("saiu da call: ", data);
-  }, []);
+  const onLeaveCall = useCallback((data: any) => {}, []);
 
   const onUser = useCallback(async (data: User) => {
     setUserLogged(data);
@@ -198,8 +191,6 @@ export default function ChatTecnico() {
 
   const onCallOpen = useCallback(
     (data: ChamadosDto) => {
-      console.log("NOVO CHAMADO ABERTO: ", data);
-      console.log("USER LOGGED: ", userRef.current);
       if (!userRef.current?.tipo_usuario?.includes("ADMINISTRATORS")) {
         if (!userRef.current?.blacklist?.includes(data.cnpj_operador)) return;
       }
@@ -290,7 +281,6 @@ export default function ChatTecnico() {
 
   // Efeitos de Drag & Drop
   const handleDragEnter = useCallback((event: DragEvent) => {
-    console.log("ENTROU NO DRAG ENTER");
     event.preventDefault();
     setModalDragdrop(true);
   }, []);
