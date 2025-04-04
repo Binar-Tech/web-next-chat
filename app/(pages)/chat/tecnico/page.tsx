@@ -137,6 +137,7 @@ export default function ChatTecnico() {
 
   //quando o tecnico aceita um chamado em aberto
   const onCallUpdated = useCallback((data: ChamadosDto) => {
+    setSelectedChat(data);
     setCalls((prev) =>
       prev ? prev.map((c) => (c.id_chamado === data.id_chamado ? data : c)) : []
     );
