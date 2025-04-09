@@ -14,6 +14,7 @@ import * as yup from "yup";
 
 import { useAuth } from "@/app/hooks/useAuth";
 import { ChamadosDto } from "../chat/_actions/dtos/chamado.dto";
+import ErrorPage from "../chat/_components/error-page";
 import { createChamado, fetchCallByIdOperadorAndCnpj } from "./_actions/api";
 import { CreateChamadoDto } from "./_actions/dtos/create-chamado.dto";
 
@@ -29,9 +30,8 @@ const schema = yup.object().shape({
 });
 
 export default function Home() {
-  const [error, setError] = useState("");
-
   const { user, token } = useAuth();
+  const [error, setError] = useState("");
 
   useEffect(() => {
     //console.log("USER LOGADO 11: ", user);
@@ -51,22 +51,27 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
+    console.log("EFFECT: ", user);
     if (user?.cnpj && user.id) {
       handleLogin();
-    }
+    } else setError("Erro nos dados do usuário!");
   }, [user?.cnpj, user?.id]);
 
   const handleLogin = async () => {
     try {
       // Chama a função do servidor passando os parâmetros
-
+      console.log("BUSCANDO CHAMADO");
       const result = await fetchCallByIdOperadorAndCnpj(
         Number(user?.id),
         user?.cnpj!
       );
+      console.log("CHAMADOS: ", result);
       setChamado(result);
       if (result) {
         router.push(`/chat/operador?data=${token}`);
+        //router.push(`/chat/operador?data=${token}&novoChamado=true`);
+      } else {
+        setError("Nenhum chamado encontrado.");
       }
     } catch (err: any) {
       setError(err.message);
@@ -109,7 +114,7 @@ export default function Home() {
   if (error)
     return (
       <div>
-        <p>Erro: {error}</p>
+        <ErrorPage message={error} />
       </div>
     );
 

@@ -56,13 +56,15 @@ export async function getLoggedUserByToken(
 export async function fetchMoreMessagesApi(
   operador: string,
   cnpj: string,
-  id_mensagem: number,
+  id_mensagem: number | null,
   limit: number
 ): Promise<MessageDto[]> {
   // Aqui você faz a lógica da API, por exemplo, uma chamada de fetch
   const fileBaseUrl = process.env.NEXT_PUBLIC_URL_API;
   const response = await fetch(
-    `${fileBaseUrl}/messages/more-messages?operador=${operador}&cnpj=${cnpj}&id_mensagem=${id_mensagem}&limit=${limit}`
+    `${fileBaseUrl}/messages/more-messages?operador=${operador}&cnpj=${cnpj}${
+      id_mensagem ? `&id_mensagem=${id_mensagem}` : ""
+    }&limit=${limit}`
   );
 
   if (!response.ok) {

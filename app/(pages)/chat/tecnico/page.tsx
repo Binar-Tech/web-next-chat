@@ -466,7 +466,17 @@ export default function ChatTecnico() {
     setSelectedChat(resultCall);
 
     try {
-      await fetchMessages(chatId, 1, 10);
+      const result = await fetchMessages(chatId, 1, 10);
+
+      if (result.length < 10) {
+        console.log("MORE MESSAGES TECNICO: ", resultCall);
+        await fetchMoreMessages(
+          resultCall?.id_operador?.toString() ?? "",
+          resultCall?.cnpj_operador ?? "",
+          messages[0].id_mensagem ?? null,
+          10
+        );
+      }
       scrollToBottom();
     } catch (error) {}
 
@@ -549,7 +559,7 @@ export default function ChatTecnico() {
           const moreMessages = await fetchMoreMessages(
             selectedChat?.id_operador?.toString() ?? "",
             selectedChat?.cnpj_operador ?? "",
-            messages[0].id_mensagem,
+            messages[0].id_mensagem ?? null,
             10
           );
 
@@ -717,6 +727,11 @@ export default function ChatTecnico() {
                 );
               })
             )}
+            {/* Se nenhuma mensagem pertence ao chamado atual, mostrar o separador */}
+            {selectedChatId &&
+              !messages.some((msg) => msg.id_chamado === selectedChatId) && (
+                <NewCallSeparator id_chamado={selectedChatId} />
+              )}
             {showNewMessageButton && (
               <NewMessageButton
                 onClick={scrollToBottom}

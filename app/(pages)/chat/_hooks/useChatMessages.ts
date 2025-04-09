@@ -39,7 +39,7 @@ export function useChatMessages() {
   const fetchMoreMessages = async (
     operador: string,
     cnpj: string,
-    id_mensagem: number,
+    id_mensagem: number | null,
     limit: number
   ): Promise<MessageDto[]> => {
     setLoadingMoreMessages(true);

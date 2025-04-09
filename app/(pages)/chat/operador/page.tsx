@@ -139,12 +139,12 @@ export default function ChatOperador() {
       if (call) {
         setCall(call);
         const retorno = await fetchMessages(call.chamado.id_chamado, 1, 10);
-        if (retorno.length < 10 && retorno.length > 0) {
+        if (retorno.length < 10) {
           await fetchMoreMessages(
             call.chamado.id_operador.toString(),
             call.chamado.cnpj_operador,
-            retorno[0].id_mensagem,
-            10
+            retorno.length > 0 ? retorno[0].id_mensagem : null,
+            20
           );
         } else if (
           retorno &&
@@ -386,8 +386,8 @@ export default function ChatOperador() {
           const moreMessages = await fetchMoreMessages(
             call?.chamado.id_operador.toString() ?? "",
             call?.chamado.cnpj_operador ?? "",
-            messages[0].id_mensagem,
-            10
+            messages[0].id_mensagem ?? null,
+            20
           );
 
           if (moreMessages.length === 0 || moreMessages.length < 10) {
@@ -449,24 +449,29 @@ export default function ChatOperador() {
           onScroll={handleScroll}
           className="flex-1 overflow-y-auto scroll-hidden"
         >
-          {
-            messages.map((message, index) => {
-              const prevMessage = index > 0 ? messages[index - 1] : null;
+          <>
+            {messages.map((message, index) => {
+              let id_chamado = index > 0 ? messages[index - 1].id_chamado : 0;
+              let prevMessage = index > 0 ? messages[index - 1] : null;
               const messageDate = formatDateTimeToDate(message.data); // Função para formatar a data (Ex: "12/03/2024")
               const prevMessageDate = prevMessage
                 ? formatDateTimeToDate(prevMessage.data)
                 : null;
 
               const isNewDate = prevMessageDate !== messageDate;
-              const isNewChamado =
+              let isNewChamado =
                 prevMessage && prevMessage.id_chamado !== message.id_chamado;
 
+              if (index === 0) {
+                isNewChamado = true;
+                id_chamado = call?.chamado.id_chamado!;
+              }
               return (
                 <div key={message.id_mensagem}>
                   {/* Exibir divisor de chamado */}
                   {/* Exibir divisor de chamado */}
                   {isNewChamado && (
-                    <NewCallSeparator id_chamado={message.id_chamado} />
+                    <NewCallSeparator id_chamado={id_chamado!} />
                   )}
 
                   {/* Exibir divisor de data */}
@@ -481,17 +486,14 @@ export default function ChatOperador() {
                   />
                 </div>
               );
-            })
-            // messages.map((message) => (
-            //   <Message
-            //     key={message.id_mensagem}
-            //     message={message}
-            //     isCurrentUser={message.remetente === "OPERADOR"}
-            //     call={call?.chamado!}
-            //     nomeLogado={user?.nome}
-            //   />
-            // ))
-          }
+            })}
+
+            {/* Se nenhuma mensagem pertence ao chamado atual, mostrar o separador */}
+            {call?.chamado &&
+              !messages.some(
+                (msg) => msg.id_chamado === call.chamado.id_chamado
+              ) && <NewCallSeparator id_chamado={call.chamado.id_chamado} />}
+          </>
         </div>
         {showNewMessageButton && (
           <NewMessageButton
