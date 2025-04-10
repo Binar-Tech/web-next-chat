@@ -67,11 +67,10 @@ export default function Home() {
       );
       console.log("CHAMADOS: ", result);
       setChamado(result);
+      console.log("CHAMADO: ", result);
       if (result) {
         router.push(`/chat/operador?data=${token}`);
         //router.push(`/chat/operador?data=${token}&novoChamado=true`);
-      } else {
-        setError("Nenhum chamado encontrado.");
       }
     } catch (err: any) {
       setError(err.message);
