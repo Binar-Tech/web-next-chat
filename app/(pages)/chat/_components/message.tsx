@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/app/components/ui/button";
 import { formatDate } from "@/app/utils/data";
 import { getFileType } from "@/app/utils/file";
 import { LucideDownload } from "lucide-react";
@@ -15,6 +16,7 @@ interface MessageProps {
   isCurrentUser: boolean;
   call: ChamadosDto;
   nomeLogado: string;
+  onCustomAction?: (flag: boolean) => void;
 }
 
 export default function Message({
@@ -22,6 +24,7 @@ export default function Message({
   isCurrentUser,
   call,
   nomeLogado,
+  onCustomAction,
 }: MessageProps) {
   const [modalOpen, setModalOpen] = useState(false);
   // Base URL para buscar arquivos
@@ -171,6 +174,23 @@ export default function Message({
                 <LucideDownload size={18} />
                 {message.nome_arquivo}
               </a>
+            )}
+
+            {message.avaliation_buttons && (
+              <div className="flex flex-row items-center justify-center gap-2 pt-4">
+                <Button
+                  className="flex flex-1"
+                  onClick={() => onCustomAction?.(true)}
+                >
+                  Avaliar
+                </Button>
+                <Button
+                  className="bg-red-700 hover:bg-red-600 flex flex-1"
+                  onClick={() => onCustomAction?.(false)}
+                >
+                  Agora não!
+                </Button>
+              </div>
             )}
             <ImageModal
               open={modalOpen}

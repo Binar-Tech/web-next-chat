@@ -127,12 +127,59 @@ export default function ChatOperador() {
     //console.log("entrou na call: ", data);
   }, []);
 
-  const onCallClosed = useCallback(() => {
-    router.replace(
-      `/home?cnpj=${user!.cnpj!}&nomeOperador=${user?.nome!}&idOperador=${user!
-        .id!}`
-    );
-  }, [user?.cnpj, user?.id, user?.nome, router]);
+  const onCallClosed = useCallback(
+    (data: Call) => {
+      console.log("CHAMADO FECHADO: ", data);
+      if (data.chamado.status === "FECHADO") {
+        router.replace(
+          `/home?cnpj=${user!
+            .cnpj!}&nomeOperador=${user?.nome!}&idOperador=${user!.id!}`
+        );
+
+        return;
+      }
+      setCall(data);
+      const n = Math.floor(Math.random() * (9999 - 999 + 1)) + 999;
+      const message: MessageDto = {
+        caminho_arquivo_ftp: "",
+        data: new Date().toISOString(),
+        id_chamado: data.chamado.id_chamado,
+        mensagem: `O técnico encerrou o atendimento. Você pode abrir um novo chamado caso precise de ajuda. `,
+        id_mensagem: n,
+        id_tecnico: "",
+        nome_arquivo: "",
+        remetente: "TECNICO",
+        tecnico_responsavel: "",
+        nome_tecnico: "",
+        system_message: false,
+      };
+
+      setMessages((prev) => {
+        const updatedMessages = [...prev, message]; // Adiciona a mensagem no início
+        return updatedMessages;
+      });
+      const n2 = Math.floor(Math.random() * (9999 - 999 + 1)) + 999;
+      const message2: MessageDto = {
+        caminho_arquivo_ftp: "",
+        data: new Date().toISOString(),
+        id_chamado: data.chamado.id_chamado,
+        mensagem: `Ajude a melhorar nosso atendimento! Avalie o atendimento do técnico. São apenas 3 perguntas!`,
+        id_mensagem: n,
+        id_tecnico: "",
+        nome_arquivo: "",
+        remetente: "TECNICO",
+        tecnico_responsavel: "",
+        nome_tecnico: "",
+        system_message: false,
+      };
+
+      setMessages((prev) => {
+        const updatedMessages = [...prev, message2]; // Adiciona a mensagem no início
+        return updatedMessages;
+      });
+    },
+    [user?.cnpj, user?.id, user?.nome, router]
+  );
 
   const handleLogged = useCallback(
     async (call: Call) => {
@@ -173,6 +220,38 @@ export default function ChatOperador() {
         }
       } else {
         router.replace(`/home?data=${token}`);
+      }
+
+      if (call.chamado.status === "AVALIAR") {
+        const generateRandomId = () =>
+          Math.floor(Math.random() * (9999 - 999 + 1)) + 999;
+
+        const baseMessage = {
+          caminho_arquivo_ftp: "",
+          data: new Date().toISOString(),
+          id_chamado: call.chamado.id_chamado,
+          id_tecnico: "",
+          nome_arquivo: "",
+          remetente: "TECNICO",
+          tecnico_responsavel: "",
+          nome_tecnico: "",
+          system_message: false,
+        };
+
+        const message1: MessageDto = {
+          ...baseMessage,
+          mensagem: `O técnico encerrou o atendimento. Você pode abrir um novo chamado caso precise de ajuda.`,
+          id_mensagem: generateRandomId(),
+        };
+
+        const message2: MessageDto = {
+          ...baseMessage,
+          mensagem: `Ajude a melhorar nosso atendimento avaliando o técnico. São apenas 3 perguntas!`,
+          id_mensagem: generateRandomId(),
+          avaliation_buttons: true,
+        };
+
+        setMessages((prev) => [...prev, message1, message2]);
       }
     },
     [
@@ -431,6 +510,10 @@ export default function ChatOperador() {
     }
   };
 
+  const handleAvaliationClick = (flag: boolean) => {
+    console.log("BOTAO CLICADO: ", flag);
+  };
+
   if (loadingMessages)
     return (
       <div className="h-full">
@@ -483,6 +566,7 @@ export default function ChatOperador() {
                     message={message}
                     isCurrentUser={message.remetente === "OPERADOR"}
                     nomeLogado={user?.nome!}
+                    onCustomAction={handleAvaliationClick}
                   />
                 </div>
               );
@@ -511,10 +595,18 @@ export default function ChatOperador() {
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
           />
-          <Button className="h-full bg-blue-400" onClick={handleOpenFilePicker}>
+          <Button
+            className="h-full bg-blue-400"
+            onClick={handleOpenFilePicker}
+            disabled={call?.chamado.status !== "ABERTO"}
+          >
             <FaPaperclip />
           </Button>
-          <Button className="h-full" onClick={handleSendMessage}>
+          <Button
+            className="h-full"
+            onClick={handleSendMessage}
+            disabled={call?.chamado.status !== "ABERTO"}
+          >
             <SendIcon />
           </Button>
           <input

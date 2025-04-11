@@ -10,4 +10,5 @@ export interface MessageDto {
   tecnico_responsavel: string;
   nome_tecnico?: string;
   system_message?: boolean;
+  avaliation_buttons?: boolean;
 }
