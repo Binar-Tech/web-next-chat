@@ -728,9 +728,9 @@ export default function ChatTecnico() {
               })
             )}
             {/* Se nenhuma mensagem pertence ao chamado atual, mostrar o separador */}
-            {selectedChatId &&
+            {Boolean(selectedChatId) &&
               !messages.some((msg) => msg.id_chamado === selectedChatId) && (
-                <NewCallSeparator id_chamado={selectedChatId} />
+                <NewCallSeparator id_chamado={selectedChatId!} />
               )}
             {showNewMessageButton && (
               <NewMessageButton

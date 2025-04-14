@@ -1,8 +1,11 @@
 "use server";
 
+import { Call } from "./dtos/call.interface";
 import { ChamadosDto } from "./dtos/chamado.dto";
 import { CreateMessageDto } from "./dtos/create-message.dto";
 import { MessageDto } from "./dtos/message-dto";
+import { QuestoesDto } from "./dtos/questoes.dto";
+import { UpdateAllAvaliacaoDto } from "./dtos/update-all-avaliacao.dto";
 import { UserAuthDto } from "./dtos/user-auth.dto";
 
 export async function fetchOpennedCals(): Promise<ChamadosDto[]> {
@@ -91,6 +94,22 @@ export async function closeCall(chamado: number): Promise<MessageDto> {
   return data;
 }
 
+export async function closeCallById(chamado: number): Promise<Call> {
+  // Aqui você faz a lógica da API, por exemplo, uma chamada de fetch
+  const fileBaseUrl = process.env.NEXT_PUBLIC_URL_API;
+  console.log("FECHANDO CHAMADO: ", chamado);
+  const response = await fetch(`${fileBaseUrl}/chamados/close/${chamado}`, {
+    method: "PATCH",
+  });
+
+  if (!response.ok) {
+    throw new Error("Erro ao chamar a API");
+  }
+
+  const data: Call = await response.json();
+  return data;
+}
+
 export async function closeCallWithoutTicket(
   chamado: number
 ): Promise<ChamadosDto> {
@@ -134,4 +153,46 @@ export async function uploadFile(
 
   const data: CreateMessageDto = await response.json();
   return data;
+}
+
+export async function findQuestions(chamado: number): Promise<QuestoesDto[]> {
+  // Aqui você faz a lógica da API, por exemplo, uma chamada de fetch
+  const fileBaseUrl = process.env.NEXT_PUBLIC_URL_API;
+
+  const response = await fetch(`${fileBaseUrl}/avaliacao/${chamado}`, {
+    method: "GET",
+  });
+
+  if (!response.ok) {
+    throw new Error("Erro ao chamar a API");
+  }
+
+  const data: QuestoesDto[] = await response.json();
+  return data;
+}
+
+export async function sendAvaliation(
+  questions: UpdateAllAvaliacaoDto[],
+  idChamado: number
+): Promise<any> {
+  // Aqui você faz a lógica da API, por exemplo, uma chamada de fetch
+  const fileBaseUrl = process.env.NEXT_PUBLIC_URL_API;
+
+  const response = await fetch(
+    `${fileBaseUrl}/avaliacao/all/${idChamado}`,
+
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json", // <- ESSENCIAL
+      },
+      body: JSON.stringify(questions),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Erro ao chamar a API");
+  }
+
+  return response.ok;
 }

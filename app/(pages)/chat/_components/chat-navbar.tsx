@@ -126,7 +126,7 @@ export default function ChatSidebar({
                       )
                     }
                   >
-                    Encerra atendimento sem ticket
+                    Encerrar atendimento sem ticket
                   </DropdownMenuItem>
                 </>
               )}

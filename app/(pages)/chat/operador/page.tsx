@@ -9,14 +9,23 @@ import { MessageDto } from "../_actions/dtos/message-dto";
 
 import { useAuth } from "@/app/hooks/useAuth";
 import { formatDateTimeToDate } from "@/app/utils/data";
+import { useToast } from "@/hooks/use-toast";
 import { FaPaperclip } from "react-icons/fa";
-import { uploadFile } from "../_actions/api";
+import {
+  closeCallById,
+  findQuestions,
+  sendAvaliation,
+  uploadFile,
+} from "../_actions/api";
 import { Call } from "../_actions/dtos/call.interface";
 import { CreateMessageDto } from "../_actions/dtos/create-message.dto";
+import { QuestoesDto } from "../_actions/dtos/questoes.dto";
 import { ReturnChamadoDto } from "../_actions/dtos/returnChamado.dto";
+import { UpdateAllAvaliacaoDto } from "../_actions/dtos/update-all-avaliacao.dto";
 import ErrorPage from "../_components/error-page";
 import NewMessageButton from "../_components/float-buttom-messages";
 import ImagePreviewModal from "../_components/image-preview-modal";
+import ModalAvaliation from "../_components/modal-avaliation";
 import ModalDragdrop from "../_components/modal-dragdrop";
 import NewCallSeparator from "../_components/new-call-separator";
 import NewDateSeparator from "../_components/new-date-separator";
@@ -32,6 +41,7 @@ export default function ChatOperador() {
   // const cnpj = useSearchParam("cnpj") ?? null;
   const { user, isAuthenticated, token } = useAuth();
   const [errorPage, setErrorPage] = useState("");
+  const { toast } = useToast();
 
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [showNewMessageButton, setShowNewMessageButton] = useState(false);
@@ -40,12 +50,14 @@ export default function ChatOperador() {
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
   const [firstLoad, setFirstLoad] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
+  const [isModalAvaliationOpen, setIsModalAvaliationOpen] = useState(false);
   const [call, setCall] = useState<Call | null>(null);
   const [message, setMessage] = useState<string>("");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [fileUpload, setFileUpload] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [modalDragdrop, setModalDragdrop] = useState(false);
+  const [questoesAvaliacao, setQuestoesAvaliacao] = useState<QuestoesDto[]>([]);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -62,9 +74,10 @@ export default function ChatOperador() {
   } = useChatMessages();
 
   useEffect(() => {
-    //console.log("USER LOGADO 11: ", user);
+    console.log("USER LOGADO 11: ", user);
     if (!user && user!.type != PerfilEnum.OPERADOR) {
       setErrorPage("Erro nos dados do usuário!");
+      router.replace(`/home?data=${token}`);
     }
   }, [user]);
 
@@ -131,52 +144,42 @@ export default function ChatOperador() {
     (data: Call) => {
       console.log("CHAMADO FECHADO: ", data);
       if (data.chamado.status === "FECHADO") {
-        router.replace(
-          `/home?cnpj=${user!
-            .cnpj!}&nomeOperador=${user?.nome!}&idOperador=${user!.id!}`
-        );
+        router.replace(`/home?data=${token}`);
 
         return;
       }
       setCall(data);
-      const n = Math.floor(Math.random() * (9999 - 999 + 1)) + 999;
-      const message: MessageDto = {
-        caminho_arquivo_ftp: "",
-        data: new Date().toISOString(),
-        id_chamado: data.chamado.id_chamado,
-        mensagem: `O técnico encerrou o atendimento. Você pode abrir um novo chamado caso precise de ajuda. `,
-        id_mensagem: n,
-        id_tecnico: "",
-        nome_arquivo: "",
-        remetente: "TECNICO",
-        tecnico_responsavel: "",
-        nome_tecnico: "",
-        system_message: false,
-      };
+      if (data.chamado.status === "AVALIAR") {
+        const generateRandomId = () =>
+          Math.floor(Math.random() * (9999 - 999 + 1)) + 999;
 
-      setMessages((prev) => {
-        const updatedMessages = [...prev, message]; // Adiciona a mensagem no início
-        return updatedMessages;
-      });
-      const n2 = Math.floor(Math.random() * (9999 - 999 + 1)) + 999;
-      const message2: MessageDto = {
-        caminho_arquivo_ftp: "",
-        data: new Date().toISOString(),
-        id_chamado: data.chamado.id_chamado,
-        mensagem: `Ajude a melhorar nosso atendimento! Avalie o atendimento do técnico. São apenas 3 perguntas!`,
-        id_mensagem: n,
-        id_tecnico: "",
-        nome_arquivo: "",
-        remetente: "TECNICO",
-        tecnico_responsavel: "",
-        nome_tecnico: "",
-        system_message: false,
-      };
+        const baseMessage = {
+          caminho_arquivo_ftp: "",
+          data: new Date().toISOString(),
+          id_chamado: data.chamado.id_chamado,
+          id_tecnico: "",
+          nome_arquivo: "",
+          remetente: "TECNICO",
+          tecnico_responsavel: "",
+          nome_tecnico: "",
+          system_message: false,
+        };
 
-      setMessages((prev) => {
-        const updatedMessages = [...prev, message2]; // Adiciona a mensagem no início
-        return updatedMessages;
-      });
+        const message1: MessageDto = {
+          ...baseMessage,
+          mensagem: `O técnico encerrou o atendimento. Você pode abrir um novo chamado caso precise de ajuda.`,
+          id_mensagem: generateRandomId(),
+        };
+
+        const message2: MessageDto = {
+          ...baseMessage,
+          mensagem: `Ajude a melhorar nosso atendimento avaliando o técnico. São apenas 3 perguntas!`,
+          id_mensagem: generateRandomId(),
+          avaliation_buttons: true,
+        };
+
+        setMessages((prev) => [...prev, message1, message2]);
+      }
     },
     [user?.cnpj, user?.id, user?.nome, router]
   );
@@ -240,7 +243,7 @@ export default function ChatOperador() {
 
         const message1: MessageDto = {
           ...baseMessage,
-          mensagem: `O técnico encerrou o atendimento. Você pode abrir um novo chamado caso precise de ajuda.`,
+          mensagem: `O atendimento foi encerrado. Você pode abrir um novo chamado caso precise de ajuda.`,
           id_mensagem: generateRandomId(),
         };
 
@@ -252,6 +255,9 @@ export default function ChatOperador() {
         };
 
         setMessages((prev) => [...prev, message1, message2]);
+        requestAnimationFrame(() => {
+          scrollToBottom();
+        });
       }
     },
     [
@@ -510,8 +516,64 @@ export default function ChatOperador() {
     }
   };
 
-  const handleAvaliationClick = (flag: boolean) => {
-    console.log("BOTAO CLICADO: ", flag);
+  const handleAvaliationClick = async (flag: boolean) => {
+    if (!flag) {
+      //alterar o chamado para fechado e direcionar para a home
+      try {
+        await closeCallById(call?.chamado.id_chamado!);
+        setIsModalAvaliationOpen(false);
+        setCall(null);
+        toast({
+          title: "Atendimento finalizado!",
+          description: "Obrigado por entrar em contato conosco!",
+          duration: 5000,
+        });
+        router.replace(`/home?data=${token}`);
+      } catch (error) {
+        toast({
+          title: "Erro!",
+          description:
+            "Não foi possível finalizar. Tente novamente mais tarde!",
+          duration: 5000,
+        });
+      }
+
+      return;
+    }
+    const questoes = await findQuestions(call?.chamado.id_chamado!);
+    setQuestoesAvaliacao(questoes);
+    setIsModalAvaliationOpen(true);
+  };
+
+  const handleAvaliationAwnsers = async (answers: { [id: string]: number }) => {
+    const questoes = Object.keys(answers).map((key) => ({
+      id: key,
+      nota: answers[key],
+    }));
+    const data: UpdateAllAvaliacaoDto[] = questoes.map((questao) => ({
+      idQuestion: questao.id,
+      nota: questao.nota,
+    }));
+
+    try {
+      await sendAvaliation(data, call?.chamado.id_chamado!);
+      await closeCallById(call?.chamado.id_chamado!);
+      setIsModalAvaliationOpen(false);
+      setCall(null);
+      toast({
+        title: "Avaliação enviada com sucesso!",
+        description: "Obrigado por avaliar o atendimento!",
+        duration: 5000,
+      });
+      router.replace(`/home?data=${token}`);
+    } catch (error) {
+      toast({
+        title: "Erro!",
+        description:
+          "Não foi possível enviar a avaliação. Tente novamente mais tarde!",
+        duration: 5000,
+      });
+    }
   };
 
   if (loadingMessages)
@@ -532,9 +594,12 @@ export default function ChatOperador() {
           onScroll={handleScroll}
           className="flex-1 overflow-y-auto scroll-hidden"
         >
-          <>
+          <div>
             {messages.map((message, index) => {
-              let id_chamado = index > 0 ? messages[index - 1].id_chamado : 0;
+              let id_chamado =
+                index > 0
+                  ? messages[index - 1].id_chamado
+                  : call?.chamado.id_chamado!;
               let prevMessage = index > 0 ? messages[index - 1] : null;
               const messageDate = formatDateTimeToDate(message.data); // Função para formatar a data (Ex: "12/03/2024")
               const prevMessageDate = prevMessage
@@ -577,7 +642,7 @@ export default function ChatOperador() {
               !messages.some(
                 (msg) => msg.id_chamado === call.chamado.id_chamado
               ) && <NewCallSeparator id_chamado={call.chamado.id_chamado} />}
-          </>
+          </div>
         </div>
         {showNewMessageButton && (
           <NewMessageButton
@@ -626,6 +691,15 @@ export default function ChatOperador() {
           />
 
           <ModalDragdrop open={modalDragdrop} />
+
+          <ModalAvaliation
+            questoes={questoesAvaliacao}
+            open={isModalAvaliationOpen}
+            onClose={() => setIsModalAvaliationOpen(false)}
+            onSubmit={(answers) => {
+              handleAvaliationAwnsers(answers); // aqui você envia pro backend ou processa
+            }}
+          />
         </div>
       </div>
     </div>

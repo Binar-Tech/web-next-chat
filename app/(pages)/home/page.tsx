@@ -51,7 +51,6 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    console.log("EFFECT: ", user);
     if (user?.cnpj && user.id) {
       handleLogin();
     } else setError("Erro nos dados do usuário!");
@@ -60,12 +59,12 @@ export default function Home() {
   const handleLogin = async () => {
     try {
       // Chama a função do servidor passando os parâmetros
-      console.log("BUSCANDO CHAMADO");
+
       const result = await fetchCallByIdOperadorAndCnpj(
         Number(user?.id),
         user?.cnpj!
       );
-      console.log("CHAMADOS: ", result);
+
       setChamado(result);
       console.log("CHAMADO: ", result);
       if (result) {
