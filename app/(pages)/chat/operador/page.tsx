@@ -22,6 +22,7 @@ import { CreateMessageDto } from "../_actions/dtos/create-message.dto";
 import { QuestoesDto } from "../_actions/dtos/questoes.dto";
 import { ReturnChamadoDto } from "../_actions/dtos/returnChamado.dto";
 import { UpdateAllAvaliacaoDto } from "../_actions/dtos/update-all-avaliacao.dto";
+import { User } from "../_actions/dtos/user.interface";
 import ErrorPage from "../_components/error-page";
 import NewMessageButton from "../_components/float-buttom-messages";
 import ImagePreviewModal from "../_components/image-preview-modal";
@@ -74,7 +75,6 @@ export default function ChatOperador() {
   } = useChatMessages();
 
   useEffect(() => {
-    console.log("USER LOGADO 11: ", user);
     if (!user && user!.type != PerfilEnum.OPERADOR) {
       setErrorPage("Erro nos dados do usuário!");
       router.replace(`/home?data=${token}`);
@@ -132,13 +132,53 @@ export default function ChatOperador() {
     [setMessages]
   );
 
-  const onEnteredCall = useCallback(() => {
-    //console.log("entrou na call: ", data);
-  }, []);
+  const onEnteredCall = useCallback(
+    ({ user, call }: { user: User; call: Call }) => {
+      const n = Math.floor(Math.random() * (9999 - 999 + 1)) + 999;
+      const message: MessageDto = {
+        caminho_arquivo_ftp: "",
+        data: new Date().toISOString(),
+        id_chamado: call.chamado.id_chamado,
+        mensagem: `O(a) técnico(a) ${user.nome} juntou-se ao chamado`,
+        id_mensagem: n,
+        id_tecnico: "21312312",
+        nome_arquivo: "",
+        remetente: "",
+        tecnico_responsavel: "",
+        nome_tecnico: "",
+        system_message: true,
+      };
+      setMessages((prev) => {
+        const updatedMessages = [...prev, message]; // Adiciona a mensagem no início
+        return updatedMessages;
+      });
+    },
+    []
+  );
 
-  const onLeaveCall = useCallback(() => {
-    //console.log("entrou na call: ", data);
-  }, []);
+  const onLeaveCall = useCallback(
+    ({ user, call }: { user: User; call: Call }) => {
+      const n = Math.floor(Math.random() * (9999 - 999 + 1)) + 999;
+      const message: MessageDto = {
+        caminho_arquivo_ftp: "",
+        data: new Date().toISOString(),
+        id_chamado: call.chamado.id_chamado,
+        mensagem: `O(a) técnico(a) ${user.nome} saiu do chamado`,
+        id_mensagem: n,
+        id_tecnico: "21312312",
+        nome_arquivo: "",
+        remetente: "",
+        tecnico_responsavel: "",
+        nome_tecnico: "",
+        system_message: true,
+      };
+      setMessages((prev) => {
+        const updatedMessages = [...prev, message]; // Adiciona a mensagem no início
+        return updatedMessages;
+      });
+    },
+    []
+  );
 
   const onCallClosed = useCallback(
     (data: Call) => {
@@ -309,7 +349,7 @@ export default function ChatOperador() {
     eventManager.on("logged", handleLogged);
     eventManager.on("accepted-call", onCallUpdated);
     eventManager.on("entered-call", onEnteredCall);
-    eventManager.on("leave-call", onLeaveCall);
+    eventManager.on("leaved-call", onLeaveCall);
     eventManager.on("closed-call", onCallClosed);
 
     return () => {
@@ -318,7 +358,7 @@ export default function ChatOperador() {
       eventManager.off("logged", handleLogged);
       eventManager.off("accepted-call", onCallUpdated);
       eventManager.off("entered-call", onEnteredCall);
-      eventManager.off("leave-call", onLeaveCall);
+      eventManager.off("leaved-call", onLeaveCall);
       eventManager.off("closed-call", onCallClosed);
     };
   }, [
@@ -596,30 +636,23 @@ export default function ChatOperador() {
         >
           <div>
             {messages.map((message, index) => {
-              let id_chamado =
-                index > 0
-                  ? messages[index - 1].id_chamado
-                  : call?.chamado.id_chamado!;
-              let prevMessage = index > 0 ? messages[index - 1] : null;
-              const messageDate = formatDateTimeToDate(message.data); // Função para formatar a data (Ex: "12/03/2024")
+              const prevMessage = index > 0 ? messages[index - 1] : null;
+
+              const messageDate = formatDateTimeToDate(message.data);
               const prevMessageDate = prevMessage
                 ? formatDateTimeToDate(prevMessage.data)
                 : null;
 
               const isNewDate = prevMessageDate !== messageDate;
-              let isNewChamado =
-                prevMessage && prevMessage.id_chamado !== message.id_chamado;
+              const isNewChamado =
+                index === 0 ||
+                (prevMessage && prevMessage.id_chamado !== message.id_chamado);
 
-              if (index === 0) {
-                isNewChamado = true;
-                id_chamado = call?.chamado.id_chamado!;
-              }
               return (
                 <div key={message.id_mensagem}>
                   {/* Exibir divisor de chamado */}
-                  {/* Exibir divisor de chamado */}
                   {isNewChamado && (
-                    <NewCallSeparator id_chamado={id_chamado!} />
+                    <NewCallSeparator id_chamado={message.id_chamado} />
                   )}
 
                   {/* Exibir divisor de data */}
@@ -631,7 +664,6 @@ export default function ChatOperador() {
                     message={message}
                     isCurrentUser={message.remetente === "OPERADOR"}
                     nomeLogado={user?.nome!}
-                    onCustomAction={handleAvaliationClick}
                   />
                 </div>
               );

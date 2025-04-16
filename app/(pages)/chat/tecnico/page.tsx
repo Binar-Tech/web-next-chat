@@ -15,6 +15,7 @@ import {
   uploadFile,
 } from "../_actions/api";
 import { AcceptCallDto } from "../_actions/dtos/accept-call.dto";
+import { Call } from "../_actions/dtos/call.interface";
 import { ChamadosDto } from "../_actions/dtos/chamado.dto";
 import { CreateMessageDto } from "../_actions/dtos/create-message.dto";
 import { EnterChatDto } from "../_actions/dtos/enter-chat.dto";
@@ -180,9 +181,61 @@ export default function ChatTecnico() {
     }
   }, []);
 
-  const onEnteredCall = useCallback((data: any) => {}, []);
+  const onEnteredCall = useCallback(
+    ({ user, call }: { user: User; call: Call }) => {
+      console.log("CALL: ", call);
+      console.log("USER: ", user);
+      if (call.chamado.id_chamado === selectedChatIdRef.current) {
+        const n = Math.floor(Math.random() * (9999 - 999 + 1)) + 999;
+        const message: MessageDto = {
+          caminho_arquivo_ftp: "",
+          data: new Date().toISOString(),
+          id_chamado: call.chamado.id_chamado,
+          mensagem: `O(a) técnico(a) ${user.nome} juntou-se ao chamado`,
+          id_mensagem: n,
+          id_tecnico: "21312312",
+          nome_arquivo: "",
+          remetente: "",
+          tecnico_responsavel: "",
+          nome_tecnico: "",
+          system_message: true,
+        };
+        setMessages((prev) => {
+          const updatedMessages = [...prev, message]; // Adiciona a mensagem no início
+          return updatedMessages;
+        });
+      }
+    },
+    []
+  );
 
-  const onLeaveCall = useCallback((data: any) => {}, []);
+  const onLeaveCall = useCallback(
+    ({ user, call }: { user: User; call: Call }) => {
+      console.log("CALL: ", call);
+      console.log("USER: ", user);
+      if (call.chamado.id_chamado === selectedChatIdRef.current) {
+        const n = Math.floor(Math.random() * (9999 - 999 + 1)) + 999;
+        const message: MessageDto = {
+          caminho_arquivo_ftp: "",
+          data: new Date().toISOString(),
+          id_chamado: call.chamado.id_chamado,
+          mensagem: `O(a) técnico(a) ${user.nome} saiu do chamado`,
+          id_mensagem: n,
+          id_tecnico: "21312312",
+          nome_arquivo: "",
+          remetente: "",
+          tecnico_responsavel: "",
+          nome_tecnico: "",
+          system_message: true,
+        };
+        setMessages((prev) => {
+          const updatedMessages = [...prev, message]; // Adiciona a mensagem no início
+          return updatedMessages;
+        });
+      }
+    },
+    []
+  );
 
   const onUser = useCallback(async (data: User) => {
     setUserLogged(data);
