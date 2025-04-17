@@ -183,7 +183,6 @@ export default function ChatTecnico() {
 
   const onEnteredCall = useCallback(
     ({ user, call }: { user: User; call: Call }) => {
-      
       if (call.chamado.id_chamado === selectedChatIdRef.current) {
         const n = Math.floor(Math.random() * (9999 - 999 + 1)) + 999;
         const message: MessageDto = {
@@ -210,7 +209,6 @@ export default function ChatTecnico() {
 
   const onLeaveCall = useCallback(
     ({ user, call }: { user: User; call: Call }) => {
-      
       if (call.chamado.id_chamado === selectedChatIdRef.current) {
         const n = Math.floor(Math.random() * (9999 - 999 + 1)) + 999;
         const message: MessageDto = {
@@ -507,6 +505,7 @@ export default function ChatTecnico() {
   const handleChatSelect = async (chatId: number) => {
     setHasMoreMessages(true);
     setFirstLoad(true);
+    setMessages([]);
     if (chatId === selectedChat?.id_chamado) return;
 
     if (selectedChat) leaveCall(selectedChat.id_chamado, RoleEnum.OBSERVER);
@@ -519,14 +518,19 @@ export default function ChatTecnico() {
     try {
       const result = await fetchMessages(chatId, 1, 10);
 
+      console.log("ID MENSAGEM: ", messages[0].id_mensagem);
+      console.log("ID OPERADOR: ", selectedChat?.id_operador);
+      console.log("CNPJ: ", selectedChat?.cnpj_operador);
+      console.log("Mensagens carregadas:", result);
       if (result.length < 10) {
-        
-        await fetchMoreMessages(
+        const more = await fetchMoreMessages(
           resultCall?.id_operador?.toString() ?? "",
           resultCall?.cnpj_operador ?? "",
-          messages[0].id_mensagem ?? null,
+          result[0].id_mensagem ?? null,
           10
         );
+
+        console.log("Mais mensagens carregadas:", more);
       }
       scrollToBottom();
     } catch (error) {}
@@ -607,13 +611,14 @@ export default function ChatTecnico() {
       if (scrollTop === 0 && !loadingMoreMessages && hasMoreMessages) {
         if (messages.length > 0) {
           // Chama fetchMoreMessages quando o usuário rolar para o topo
+
           const moreMessages = await fetchMoreMessages(
             selectedChat?.id_operador?.toString() ?? "",
             selectedChat?.cnpj_operador ?? "",
             messages[0].id_mensagem ?? null,
             10
           );
-
+          console.log("Mais mensagens carregadas:", moreMessages);
           if (moreMessages.length === 0 || moreMessages.length < 10) {
             // Se não houver mais mensagens ou menos de 10 mensagens, não buscar mais
             setHasMoreMessages(false);
