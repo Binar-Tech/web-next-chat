@@ -3,7 +3,7 @@ export function formatDate(dateString: string) {
   const date = new Date(dateString);
 
   // Adiciona 3 horas à data original (por exemplo, para corrigir a diferença de fuso)
-  date.setHours(date.getHours() + 3); // Ajuste de 3 horas a mais
+  //date.setHours(date.getHours() + 3); // Ajuste de 3 horas a mais
 
   const brazilOffset = 180;
   const localOffset = new Date().getTimezoneOffset();
