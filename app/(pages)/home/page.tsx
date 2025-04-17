@@ -66,7 +66,7 @@ export default function Home() {
       );
 
       setChamado(result);
-      console.log("CHAMADO: ", result);
+      
       if (result) {
         router.push(`/chat/operador?data=${token}`);
         //router.push(`/chat/operador?data=${token}&novoChamado=true`);

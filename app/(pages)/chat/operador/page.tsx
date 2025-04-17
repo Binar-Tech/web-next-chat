@@ -182,7 +182,7 @@ export default function ChatOperador() {
 
   const onCallClosed = useCallback(
     (data: Call) => {
-      console.log("CHAMADO FECHADO: ", data);
+      
       if (data.chamado.status === "FECHADO") {
         router.replace(`/home?data=${token}`);
 

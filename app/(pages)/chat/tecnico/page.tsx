@@ -183,8 +183,7 @@ export default function ChatTecnico() {
 
   const onEnteredCall = useCallback(
     ({ user, call }: { user: User; call: Call }) => {
-      console.log("CALL: ", call);
-      console.log("USER: ", user);
+      
       if (call.chamado.id_chamado === selectedChatIdRef.current) {
         const n = Math.floor(Math.random() * (9999 - 999 + 1)) + 999;
         const message: MessageDto = {
@@ -211,8 +210,7 @@ export default function ChatTecnico() {
 
   const onLeaveCall = useCallback(
     ({ user, call }: { user: User; call: Call }) => {
-      console.log("CALL: ", call);
-      console.log("USER: ", user);
+      
       if (call.chamado.id_chamado === selectedChatIdRef.current) {
         const n = Math.floor(Math.random() * (9999 - 999 + 1)) + 999;
         const message: MessageDto = {
@@ -522,7 +520,7 @@ export default function ChatTecnico() {
       const result = await fetchMessages(chatId, 1, 10);
 
       if (result.length < 10) {
-        console.log("MORE MESSAGES TECNICO: ", resultCall);
+        
         await fetchMoreMessages(
           resultCall?.id_operador?.toString() ?? "",
           resultCall?.cnpj_operador ?? "",

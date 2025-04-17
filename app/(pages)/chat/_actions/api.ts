@@ -97,7 +97,7 @@ export async function closeCall(chamado: number): Promise<MessageDto> {
 export async function closeCallById(chamado: number): Promise<Call> {
   // Aqui você faz a lógica da API, por exemplo, uma chamada de fetch
   const fileBaseUrl = process.env.NEXT_PUBLIC_URL_API;
-  console.log("FECHANDO CHAMADO: ", chamado);
+  
   const response = await fetch(`${fileBaseUrl}/chamados/close/${chamado}`, {
     method: "PATCH",
   });
