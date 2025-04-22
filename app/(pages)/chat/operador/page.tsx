@@ -182,7 +182,6 @@ export default function ChatOperador() {
 
   const onCallClosed = useCallback(
     (data: Call) => {
-      
       if (data.chamado.status === "FECHADO") {
         router.replace(`/home?data=${token}`);
 
@@ -660,6 +659,7 @@ export default function ChatOperador() {
 
                   {/* Exibir a mensagem normalmente */}
                   <Message
+                    onCustomAction={handleAvaliationClick}
                     call={call?.chamado!}
                     message={message}
                     isCurrentUser={message.remetente === "OPERADOR"}
@@ -686,6 +686,7 @@ export default function ChatOperador() {
           <input
             ref={inputRef}
             type="text"
+            disabled={call?.chamado.status !== "ABERTO"}
             placeholder="Mensagem..."
             className="w-full p-2 border border-gray-30 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={message}
