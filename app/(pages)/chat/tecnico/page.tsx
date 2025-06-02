@@ -150,6 +150,8 @@ export default function ChatTecnico() {
       (prev) => prev?.filter((c) => c.id_chamado !== data.id_chamado) || []
     );
     if (data.tecnico_responsavel === user?.id) {
+      console.log("Chamado fechado pelo técnico logado: ", data);
+
       window.parent.postMessage(
         {
           type: "CLOSE_CALL",
@@ -241,6 +243,8 @@ export default function ChatTecnico() {
 
   const onCallOpen = useCallback(
     (data: ChamadosDto) => {
+      console.log("Chamado aberto: ", data);
+
       if (!userRef.current?.tipo_usuario?.includes("ADMINISTRATORS")) {
         if (!userRef.current?.blacklist?.includes(data.cnpj_operador)) return;
       }
