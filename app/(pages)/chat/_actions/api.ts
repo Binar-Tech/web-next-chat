@@ -3,6 +3,7 @@
 import { Call } from "./dtos/call.interface";
 import { ChamadosDto } from "./dtos/chamado.dto";
 import { CreateMessageDto } from "./dtos/create-message.dto";
+import { LastSevenCallsDto } from "./dtos/lastSevenCalls.dto";
 import { MessageDto } from "./dtos/message-dto";
 import { QuestoesDto } from "./dtos/questoes.dto";
 import { UpdateAllAvaliacaoDto } from "./dtos/update-all-avaliacao.dto";
@@ -18,6 +19,48 @@ export async function fetchOpennedCals(): Promise<ChamadosDto[]> {
   }
 
   const data: ChamadosDto[] = await response.json();
+
+  return data;
+}
+
+export async function fetchCallsByIdTecnico(): Promise<ChamadosDto[]> {
+  const fileBaseUrl = process.env.NEXT_PUBLIC_URL_API;
+  // Aqui você faz a lógica da API, por exemplo, uma chamada de fetch
+  const response = await fetch(`${fileBaseUrl}/chamados/tecnico?idTecnico=`);
+
+  if (!response.ok) {
+    throw new Error("Erro ao chamar a API");
+  }
+
+  const data: ChamadosDto[] = await response.json();
+
+  return data;
+}
+
+export async function fetchAllCallsPaginated(): Promise<ChamadosDto[]> {
+  const fileBaseUrl = process.env.NEXT_PUBLIC_URL_API;
+  // Aqui você faz a lógica da API, por exemplo, uma chamada de fetch
+  const response = await fetch(`${fileBaseUrl}/chamados/paginated`);
+
+  if (!response.ok) {
+    throw new Error("Erro ao chamar a API");
+  }
+
+  const data: ChamadosDto[] = await response.json();
+
+  return data;
+}
+
+export async function findLastSevenCalls(): Promise<LastSevenCallsDto[]> {
+  const fileBaseUrl = process.env.NEXT_PUBLIC_URL_API;
+  // Aqui você faz a lógica da API, por exemplo, uma chamada de fetch
+  const response = await fetch(`${fileBaseUrl}/chamados/last-seven-calls`);
+
+  if (!response.ok) {
+    throw new Error("Erro ao chamar a API");
+  }
+
+  const data: LastSevenCallsDto[] = await response.json();
 
   return data;
 }

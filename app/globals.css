@@ -81,3 +81,18 @@ body {
     -ms-overflow-style: none; /* IE e Edge */
   }
 }
+@layer utilities {
+  @keyframes blink {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.4;
+    }
+  }
+
+  .animate-blink {
+    animation: blink 2s ease-in-out infinite;
+  }
+}
