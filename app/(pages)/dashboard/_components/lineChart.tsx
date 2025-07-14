@@ -38,11 +38,20 @@ export function LineChartCalls({ lastSevenCall }: LineChartProps) {
       color: "blue",
     },
   } satisfies ChartConfig;
+
+  function getFirstAndLastDate(): string {
+    if (!lastSevenCall || lastSevenCall.length === 0) return "";
+
+    const firstDay = lastSevenCall[0].data;
+    const lastDay = lastSevenCall[lastSevenCall.length - 1].data;
+
+    return `${firstDay} - ${lastDay}`;
+  }
   return (
     <Card className="flex flex-col flex-1 min-h-0 dark:bg-neutral-700">
       <CardHeader>
         <CardTitle>Chamados</CardTitle>
-        <CardDescription>05/07/2025 - 11/07/2025</CardDescription>
+        <CardDescription>{getFirstAndLastDate()}</CardDescription>
       </CardHeader>
 
       <CardContent className="flex-1 min-h-0">

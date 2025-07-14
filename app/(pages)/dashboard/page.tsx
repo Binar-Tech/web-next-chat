@@ -74,7 +74,8 @@ export default function Dashboard() {
     const newCall: ChamadosDto = { ...data, unread_messages: 0 };
 
     setCalls((prev) => (prev ? [...prev, newCall] : [newCall]));
-    setOpennedCalls((prev) => (prev ? [...prev, newCall] : [newCall]));
+    setOpennedCalls((prev) => (prev ? [newCall, ...prev] : [newCall]));
+    fetchData();
   }, []);
 
   const onCallUpdated = useCallback((data: ChamadosDto) => {
