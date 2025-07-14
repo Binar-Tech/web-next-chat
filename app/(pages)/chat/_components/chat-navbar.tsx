@@ -7,7 +7,13 @@ import {
   DropdownMenuTrigger,
 } from "@/app/components/ui/dropdown-menu";
 
-import { ExternalLink, LucideUser, Moon, Sun } from "lucide-react";
+import {
+  ExternalLink,
+  LucideChartLine,
+  LucideUser,
+  Moon,
+  Sun,
+} from "lucide-react";
 import { useTheme } from "next-themes";
 import { ChamadosDto } from "../_actions/dtos/chamado.dto";
 import { dropdownEventEmitter } from "../_services/dropdown-event/dropdown-event-emitter";
@@ -45,6 +51,15 @@ export default function ChatSidebar({
         )}
       </div>
       <div className="flex flex-1 flex-row justify-end items-center gap-1">
+        <a
+          href={`https://btchat.biofinger.com.br/dashboard?data=${token}`}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <Button variant="outline" size="icon">
+            <LucideChartLine className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100" />
+          </Button>
+        </a>
         <a
           href={`https://btchat.biofinger.com.br/chat/tecnico?data=${token}`}
           target="_blank"

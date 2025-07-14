@@ -28,45 +28,45 @@ export default function ChatItem({ chamado }: ChatItemProps) {
             </span>
 
             {chamado.tecnico?.name && (
-              <div className="flex items-center gap-1 text-sm md:text-xl text-muted-foreground">
-                <span className="font-medium">Técnico:</span>
+              <div className="flex items-center gap-1 text-sm md:text-xl ">
+                <span className="font-medium ">Técnico:</span>
                 <span>{chamado.tecnico.name}</span>
               </div>
             )}
 
-            <div className="flex items-center gap-1 text-sm md:text-xl text-muted-foreground">
+            <div className="flex items-center gap-1 text-sm md:text-xl ">
               <LucideGlobe
                 size={20}
                 className="text-gray-500 dark:text-gray-200"
               />
-              <span className="font-medium">Empresa:</span>
+              <span className="font-medium dark:text-orange-200">Empresa:</span>
               <span>{chamado.empresa.fantasia}</span>
             </div>
 
-            <div className="flex items-center gap-1 text-sm md:text-xl text-muted-foreground">
+            <div className="flex items-center gap-1 text-sm md:text-xl ">
               <LucideUser
                 size={20}
                 className="text-gray-500 dark:text-gray-200"
               />
-              <span className="font-medium">CNPJ:</span>
+              <span className="font-medium dark:text-orange-200">CNPJ:</span>
               <span>{chamado.cnpj_operador}</span>
             </div>
 
-            <div className="flex items-center gap-1 text-sm md:text-xl text-muted-foreground">
+            <div className="flex items-center gap-1 text-sm md:text-xl ">
               <LucidePhone
                 size={20}
                 className="text-gray-500 dark:text-gray-200"
               />
-              <span className="font-medium">Contato:</span>
+              <span className="font-medium dark:text-orange-200">Contato:</span>
               <span>{chamado.contato}</span>
             </div>
 
-            <div className="flex items-center gap-1 text-sm md:text-xl text-muted-foreground">
+            <div className="flex items-center gap-1 text-sm md:text-xl ">
               <LucideLink
                 size={20}
                 className="text-gray-500 dark:text-gray-200"
               />
-              <span className="font-medium">Link:</span>
+              <span className="font-medium dark:text-orange-200">Link:</span>
               <span>{chamado.link_operador}</span>
             </div>
           </div>

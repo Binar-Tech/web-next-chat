@@ -17,7 +17,7 @@ type TableLastCallsProps = {
 
 export function TableLastCalls({ calls }: TableLastCallsProps) {
   return (
-    <Table className="">
+    <Table className="text-[.6rem] xl:text-sm">
       <TableCaption>Últimos chamados abertos</TableCaption>
       <TableHeader>
         <TableRow>

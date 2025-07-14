@@ -1,31 +1,9 @@
 "use client";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/app/components/ui/card";
-import {
-  ChartConfig,
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/app/components/ui/chart";
+import { ChartConfig } from "@/app/components/ui/chart";
 import { useAuth } from "@/app/hooks/useAuth";
 
-import { TrendingUp } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import {
-  CartesianGrid,
-  LabelList,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  XAxis,
-} from "recharts";
 import {
   fetchAllCallsPaginated,
   fetchCallsByIdTecnico,
@@ -34,19 +12,21 @@ import {
 import { ChamadosDto } from "../chat/_actions/dtos/chamado.dto";
 import { LastSevenCallsDto } from "../chat/_actions/dtos/lastSevenCalls.dto";
 import { User } from "../chat/_actions/dtos/user.interface";
+import ErrorPage from "../chat/_components/error-page";
+import Loading from "../chat/_components/loading";
 import { PerfilEnum } from "../chat/_services/enums/perfil.enum";
 import { eventManager } from "../chat/_services/socket/eventManager";
 import { socketService } from "../chat/_services/socket/socketService";
 import ChatItem from "./_components/cardCall";
+import { LineChartCalls } from "./_components/lineChart";
 import { TableLastCalls } from "./_components/table";
 
 export default function Dashboard() {
   const { user, token, isAuthenticated } = useAuth();
-  const [calls, setCalls] = useState<ChamadosDto[] | null>(null);
-  const [opennedCall, setOpennedCalls] = useState<ChamadosDto[] | null>(null);
-  const [lastSevenCall, setLasSevenCall] = useState<LastSevenCallsDto[] | null>(
-    null
-  );
+  const [calls, setCalls] = useState<ChamadosDto[]>([]);
+  const [opennedCall, setOpennedCalls] = useState<ChamadosDto[]>([]);
+  const [lastSevenCall, setLasSevenCall] = useState<LastSevenCallsDto[]>([]);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -56,9 +36,19 @@ export default function Dashboard() {
       setError("Erro nos dados do usuário!");
     }
   }, [user]);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (user) {
+        fetchData(); // Atualiza os dados
+      }
+    }, 5 * 60 * 1000); // 5 minutos
+
+    return () => clearInterval(interval);
+  }, [user]);
 
   useEffect(() => {
-    //connectSocket();
+    socketService.connect();
+
     eventManager.on("connect", loginSocket);
     eventManager.on("open-call", onCallOpen);
     eventManager.on("accepted-call", onCallUpdated);
@@ -66,42 +56,25 @@ export default function Dashboard() {
     eventManager.on("user", onUser);
 
     return () => {
+      socketService.disconnect();
       eventManager.off("connect", loginSocket);
       eventManager.off("accepted-call", onCallUpdated);
       eventManager.off("open-call", onCallOpen);
       eventManager.off("closed-call", onCallClosed);
       eventManager.off("user", onUser);
-
-      //socketService.disconnect();
     };
   }, []);
 
   const onCallOpen = useCallback((data: ChamadosDto) => {
-    console.log("Chamado aberto: ", data);
-
-    // Filtra chamados onde tecnico_responsavel === null e o CNPJ está na blacklist
-
     const notificationSound = new Audio("/notify-new-call.mp3");
     notificationSound.play();
 
-    //playSound();
     window.parent.postMessage({ type: "NEW_CALL_NOTIFICATION" }, "*");
 
-    setCalls((prev) => {
-      const newCall: ChamadosDto = {
-        ...data,
-        unread_messages: 0,
-      };
-      return prev ? [...prev, newCall] : [newCall];
-    });
+    const newCall: ChamadosDto = { ...data, unread_messages: 0 };
 
-    setOpennedCalls((prev) => {
-      const newCall: ChamadosDto = {
-        ...data,
-        unread_messages: 0,
-      };
-      return prev ? [...prev, newCall] : [newCall];
-    });
+    setCalls((prev) => (prev ? [...prev, newCall] : [newCall]));
+    setOpennedCalls((prev) => (prev ? [...prev, newCall] : [newCall]));
   }, []);
 
   const onCallUpdated = useCallback((data: ChamadosDto) => {
@@ -115,8 +88,13 @@ export default function Dashboard() {
   }, []);
 
   const onCallClosed = useCallback((data: ChamadosDto) => {
+    console.log("CHAMADO FECHADO: ", data);
     setCalls((prev) =>
-      prev ? prev.map((c) => (c.id_chamado === data.id_chamado ? data : c)) : []
+      prev
+        ? prev.map((c) =>
+            c.id_chamado === data.id_chamado ? { ...c, status: data.status } : c
+          )
+        : []
     );
   }, []);
 
@@ -130,23 +108,13 @@ export default function Dashboard() {
     socketService.login(data);
   };
 
-  useEffect(() => {
-    try {
-      socketService.connect();
-    } catch (error) {}
-
-    return () => {
-      socketService.disconnect();
-    };
-  }, []);
-
   const onUser = useCallback(async (data: User) => {
     //setUserLogged(data);
 
-    await fetchData(data);
+    await fetchData();
   }, []);
 
-  const fetchData = async (user: User) => {
+  const fetchData = async () => {
     try {
       // Chama a função do servidor passando os parâmetros
 
@@ -154,8 +122,6 @@ export default function Dashboard() {
       const lastCalls = await findLastSevenCalls();
       console.log("CALLS: ", result);
       const opennedCalls = await fetchCallsByIdTecnico();
-
-      console.log("CALL ABERTAS: ", opennedCalls);
 
       setCalls(result);
       setLasSevenCall(lastCalls);
@@ -177,11 +143,17 @@ export default function Dashboard() {
       color: "blue",
     },
   } satisfies ChartConfig;
+  if (loading) {
+    return <Loading />;
+  }
+  if (error) {
+    return <ErrorPage message={error} />;
+  }
   return (
     <div className="flex flex-col w-full h-screen gap-4 p-4 overflow-hidden">
       {/* Se houver chamados abertos */}
       {opennedCall && opennedCall.length > 0 && (
-        <div className="flex flex-row flex-wrap gap-4 p-2 rounded-xl dark:bg-neutral-700 overflow-auto md:h-[33%]">
+        <div className="flex flex-row flex-wrap gap-4 p-2 rounded-xl dark:bg-neutral-700 overflow-auto md:h-[25%]">
           {opennedCall.map((call) => (
             <div key={call.id_chamado} className="flex-1 min-w-[250px] h-full">
               <ChatItem chamado={call} />
@@ -191,59 +163,7 @@ export default function Dashboard() {
       )}
 
       {/* Gráfico de chamados */}
-      <Card className="flex flex-col flex-1 min-h-0 dark:bg-neutral-700">
-        <CardHeader>
-          <CardTitle>Chamados</CardTitle>
-          <CardDescription>05/07/2025 - 11/07/2025</CardDescription>
-        </CardHeader>
-
-        <CardContent className="flex-1 min-h-0">
-          <div className="w-full h-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <ChartContainer config={chartConfig}>
-                <LineChart
-                  data={lastSevenCall ?? []}
-                  margin={{ top: 20, left: 12, right: 12 }}
-                >
-                  <CartesianGrid vertical={false} />
-                  <XAxis
-                    dataKey="data"
-                    tickLine={false}
-                    axisLine={false}
-                    tickMargin={8}
-                    tickFormatter={(value) => value}
-                  />
-                  <ChartTooltip
-                    cursor={false}
-                    content={<ChartTooltipContent indicator="line" />}
-                  />
-                  <Line
-                    dataKey="total"
-                    type="natural"
-                    stroke="hsl(var(--chart-1))"
-                    strokeWidth={2}
-                    dot={{ fill: "white" }}
-                    activeDot={{ r: 6 }}
-                  >
-                    <LabelList
-                      position="top"
-                      offset={12}
-                      className="fill-foreground"
-                      fontSize={12}
-                    />
-                  </Line>
-                </LineChart>
-              </ChartContainer>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
-
-        <CardFooter className="flex-col items-start gap-2 text-sm">
-          <div className="flex gap-2 leading-none font-medium">
-            Chamados nos últimos 7 dias <TrendingUp className="h-4 w-4" />
-          </div>
-        </CardFooter>
-      </Card>
+      <LineChartCalls lastSevenCall={lastSevenCall} />
 
       {/* Tabela de chamados recentes */}
       <div className="flex-1 min-h-0 overflow-auto rounded-xl dark:bg-neutral-700">
