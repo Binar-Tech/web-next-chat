@@ -7,7 +7,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/app/components/ui/table";
-import { formatDateTime } from "@/app/utils/data";
+import { formatDate } from "@/app/utils/data";
 import { ChamadosDto } from "../../chat/_actions/dtos/chamado.dto";
 import { StatusBadge } from "./statusBadge";
 
@@ -37,7 +37,7 @@ export function TableLastCalls({ calls }: TableLastCallsProps) {
               <TableCell>
                 <StatusBadge status={call.status} />
               </TableCell>
-              <TableCell>{formatDateTime(call.data_abertura)}</TableCell>
+              <TableCell>{formatDate(call.data_abertura)}</TableCell>
               <TableCell>{call.tecnico?.name}</TableCell>
               <TableCell>{call.empresa?.fantasia ?? ""}</TableCell>
               <TableCell>{call.nome_operador}</TableCell>
