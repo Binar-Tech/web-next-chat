@@ -23,7 +23,7 @@ export default function ChatItem({ chamado }: ChatItemProps) {
           )}
         >
           <div className="flex flex-col gap-1 flex-1">
-            <span className="font-semibold text-blue-600 dark:text-blue-400 md:text-xl">
+            <span className="font-semibold text-blue-600 dark:text-blue-400 md:text-lg">
               {chamado.nome_operador}
             </span>
 
@@ -34,7 +34,7 @@ export default function ChatItem({ chamado }: ChatItemProps) {
               </div>
             )}
 
-            <div className="flex items-center gap-1 text-sm md:text-xl ">
+            <div className="flex items-center gap-1 text-sm md:text-lg ">
               <LucideGlobe
                 size={20}
                 className="text-gray-500 dark:text-gray-200"
@@ -43,7 +43,7 @@ export default function ChatItem({ chamado }: ChatItemProps) {
               <span>{chamado.empresa.fantasia}</span>
             </div>
 
-            <div className="flex items-center gap-1 text-sm md:text-xl ">
+            <div className="flex items-center gap-1 text-sm md:text-lg ">
               <LucideUser
                 size={20}
                 className="text-gray-500 dark:text-gray-200"
@@ -52,7 +52,7 @@ export default function ChatItem({ chamado }: ChatItemProps) {
               <span>{chamado.cnpj_operador}</span>
             </div>
 
-            <div className="flex items-center gap-1 text-sm md:text-xl ">
+            <div className="flex items-center gap-1 text-sm md:text-lg ">
               <LucidePhone
                 size={20}
                 className="text-gray-500 dark:text-gray-200"
@@ -61,7 +61,7 @@ export default function ChatItem({ chamado }: ChatItemProps) {
               <span>{chamado.contato}</span>
             </div>
 
-            <div className="flex items-center gap-1 text-sm md:text-xl ">
+            <div className="flex items-center gap-1 text-sm md:text-lg ">
               <LucideLink
                 size={20}
                 className="text-gray-500 dark:text-gray-200"

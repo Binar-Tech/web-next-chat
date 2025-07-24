@@ -1,6 +1,5 @@
 "use client";
 
-import { ChartConfig } from "@/app/components/ui/chart";
 import { useAuth } from "@/app/hooks/useAuth";
 
 import { useCallback, useEffect, useState } from "react";
@@ -40,6 +39,10 @@ export default function Dashboard() {
     const interval = setInterval(() => {
       if (user) {
         fetchData(); // Atualiza os dados
+        if (opennedCall.length > 0) {
+          const notificationSound = new Audio("/notify-new-call.mp3");
+          notificationSound.play();
+        }
       }
     }, 5 * 60 * 1000); // 5 minutos
 
@@ -133,17 +136,6 @@ export default function Dashboard() {
       setLoading(false);
     }
   };
-
-  const chartConfig = {
-    desktop: {
-      label: "Desktop",
-      color: "blue",
-    },
-    mobile: {
-      label: "Mobile",
-      color: "blue",
-    },
-  } satisfies ChartConfig;
   if (loading) {
     return <Loading />;
   }
