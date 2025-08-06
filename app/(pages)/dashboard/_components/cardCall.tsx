@@ -16,25 +16,25 @@ export default function ChatItem({ chamado }: ChatItemProps) {
       <HoverCardTrigger className="h-full">
         <div
           className={clsx(
-            "h-full flex flex-col justify-between p-4 rounded-md shadow-md cursor-pointer transition-all duration-400 bg-red-500/40 border border-red-500 animate-blink",
+            "h-full flex flex-col justify-between p-4 rounded-md shadow-md cursor-pointer transition-all duration-400",
             isCritical
-              ? "bg-red-500/30 border border-red-500 animate-blink"
+              ? "animate-blink-light dark:animate-blink-dark text-black dark:text-white dark:blink-invert-text"
               : "bg-muted hover:bg-accent"
           )}
         >
           <div className="flex flex-col gap-1 flex-1">
-            <span className="font-semibold text-blue-600 dark:text-blue-400 md:text-lg">
+            <span className="font-semibold text-blue-600 dark:text-blue-400 md:text-base">
               {chamado.nome_operador}
             </span>
 
             {chamado.tecnico?.name && (
-              <div className="flex items-center gap-1 text-sm md:text-xl ">
+              <div className="flex items-center gap-1 text-sm md:text-base ">
                 <span className="font-medium ">Técnico:</span>
                 <span>{chamado.tecnico.name}</span>
               </div>
             )}
 
-            <div className="flex items-center gap-1 text-sm md:text-lg ">
+            <div className="flex items-center gap-1 text-sm md:text-base ">
               <LucideGlobe
                 size={20}
                 className="text-gray-500 dark:text-gray-200"
@@ -43,7 +43,7 @@ export default function ChatItem({ chamado }: ChatItemProps) {
               <span>{chamado.empresa.fantasia}</span>
             </div>
 
-            <div className="flex items-center gap-1 text-sm md:text-lg ">
+            <div className="flex items-center gap-1 text-sm md:text-base ">
               <LucideUser
                 size={20}
                 className="text-gray-500 dark:text-gray-200"
@@ -52,7 +52,7 @@ export default function ChatItem({ chamado }: ChatItemProps) {
               <span>{chamado.cnpj_operador}</span>
             </div>
 
-            <div className="flex items-center gap-1 text-sm md:text-lg ">
+            <div className="flex items-center gap-1 text-sm md:text-base ">
               <LucidePhone
                 size={20}
                 className="text-gray-500 dark:text-gray-200"
@@ -61,7 +61,7 @@ export default function ChatItem({ chamado }: ChatItemProps) {
               <span>{chamado.contato}</span>
             </div>
 
-            <div className="flex items-center gap-1 text-sm md:text-lg ">
+            <div className="flex items-center gap-1 text-sm md:text-base ">
               <LucideLink
                 size={20}
                 className="text-gray-500 dark:text-gray-200"

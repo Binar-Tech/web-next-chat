@@ -81,18 +81,47 @@ body {
     -ms-overflow-style: none; /* IE e Edge */
   }
 }
+
 @layer utilities {
-  @keyframes blink {
+  @keyframes blink-light {
     0%,
     100% {
-      opacity: 1;
+      background-color: rgba(71, 31, 31, 0.3);
     }
     50% {
-      opacity: 0.4;
+      background-color: rgb(245, 50, 50);
     }
   }
 
-  .animate-blink {
-    animation: blink 2s ease-in-out infinite;
+  @keyframes blink-dark-bg {
+    0%,
+    100% {
+      background-color: transparent;
+    }
+    50% {
+      background-color: white;
+    }
+  }
+
+  @keyframes blink-dark-text {
+    0%,
+    100% {
+      color: white;
+    }
+    50% {
+      color: black;
+    }
+  }
+
+  .animate-blink-light {
+    animation: blink-light 1.5s step-start infinite;
+  }
+
+  .dark\:animate-blink-dark-bg {
+    @apply dark:animation-[blink-dark-bg_1.5s_step-start_infinite];
+  }
+
+  .dark\:animate-blink-dark-text {
+    @apply dark:animation-[blink-dark-text_1.5s_step-start_infinite];
   }
 }
