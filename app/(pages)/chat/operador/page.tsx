@@ -30,6 +30,7 @@ import ModalAvaliation from "../_components/modal-avaliation";
 import ModalDragdrop from "../_components/modal-dragdrop";
 import NewCallSeparator from "../_components/new-call-separator";
 import NewDateSeparator from "../_components/new-date-separator";
+import ChatAudioComponent from "../_components/record-audio-chat";
 import { useChatMessages } from "../_hooks/useChatMessages";
 import { PerfilEnum } from "../_services/enums/perfil.enum";
 import { eventManager } from "../_services/socket/eventManager";
@@ -341,6 +342,27 @@ export default function ChatOperador() {
   }, []);
 
   useEffect(() => {
+    const handlePaste = (event: ClipboardEvent) => {
+      if (event.clipboardData?.files.length) {
+        const pastedFile = event.clipboardData.files[0];
+
+        // garante que é imagem
+        if (pastedFile.type.startsWith("image/")) {
+          const localUrl = URL.createObjectURL(pastedFile);
+          setImageUrl(localUrl);
+          setFileUpload(pastedFile);
+          setModalOpen(true);
+        }
+      }
+    };
+
+    window.addEventListener("paste", handlePaste);
+    return () => {
+      window.removeEventListener("paste", handlePaste);
+    };
+  }, [setImageUrl, setFileUpload, setModalOpen]);
+
+  useEffect(() => {
     // Criamos a função separadamente para poder referenciá-la depois
 
     eventManager.on("connect", loginSocket);
@@ -615,6 +637,23 @@ export default function ChatOperador() {
     }
   };
 
+  const handleSendAudio = async (file: File) => {
+    setUploading(true);
+    try {
+      const message: CreateMessageDto = {
+        id_chamado: call!.chamado!.id_chamado,
+        mensagem: null,
+        remetente: PerfilEnum.OPERADOR,
+        nome_arquivo: fileUpload!.name,
+      };
+      const result = await uploadFile(file!, message, call!.chamado!);
+      socketService.sendMessage(result);
+    } catch (error) {
+    } finally {
+      setUploading(false);
+    }
+  };
+
   if (loadingMessages)
     return (
       <div className="h-full">
@@ -683,6 +722,7 @@ export default function ChatOperador() {
           />
         )}
         <div className="mt-4 gap-2 flex flex-row">
+          <ChatAudioComponent onSend={handleSendAudio} maxDurationSec={60} />
           <input
             ref={inputRef}
             type="text"
@@ -707,6 +747,7 @@ export default function ChatOperador() {
           >
             <SendIcon />
           </Button>
+
           <input
             type="file"
             accept="image/*"

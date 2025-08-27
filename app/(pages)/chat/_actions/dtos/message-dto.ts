@@ -11,4 +11,5 @@ export interface MessageDto {
   nome_tecnico?: string;
   system_message?: boolean;
   avaliation_buttons?: boolean;
+  message_reply?: MessageDto | null;
 }

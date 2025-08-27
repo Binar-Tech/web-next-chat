@@ -30,6 +30,7 @@ import NewMessageButton from "../_components/float-buttom-messages";
 import ModalDragdrop from "../_components/modal-dragdrop";
 import NewCallSeparator from "../_components/new-call-separator";
 import NewDateSeparator from "../_components/new-date-separator";
+import ChatAudioComponent from "../_components/record-audio-chat";
 import { useChatMessages } from "../_hooks/useChatMessages";
 import { dropdownEventEmitter } from "../_services/dropdown-event/dropdown-event-emitter";
 import { PerfilEnum } from "../_services/enums/perfil.enum";
@@ -214,6 +215,7 @@ export default function ChatTecnico() {
 
   const onLeaveCall = useCallback(
     ({ user, call }: { user: User; call: Call }) => {
+      console.log("call: ", call);
       if (call.chamado.id_chamado === selectedChatIdRef.current) {
         const n = Math.floor(Math.random() * (9999 - 999 + 1)) + 999;
         const message: MessageDto = {
@@ -365,6 +367,28 @@ export default function ChatTecnico() {
       setModalOpen(true);
     }
   }, []);
+
+  //detecta o ctrl + v para enviar arquivos e imagens
+  useEffect(() => {
+    const handlePaste = (event: ClipboardEvent) => {
+      if (event.clipboardData?.files.length) {
+        const pastedFile = event.clipboardData.files[0];
+
+        // garante que é imagem
+        if (pastedFile.type.startsWith("image/")) {
+          const localUrl = URL.createObjectURL(pastedFile);
+          setImageUrl(localUrl);
+          setFileUpload(pastedFile);
+          setModalOpen(true);
+        }
+      }
+    };
+
+    window.addEventListener("paste", handlePaste);
+    return () => {
+      window.removeEventListener("paste", handlePaste);
+    };
+  }, [setImageUrl, setFileUpload, setModalOpen]);
 
   // 🔥 Conecta o socket apenas uma vez e adiciona/remover eventos corretamente
   useEffect(() => {
@@ -525,9 +549,6 @@ export default function ChatTecnico() {
     try {
       const result = await fetchMessages(chatId, 1, 10);
 
-      console.log("ID MENSAGEM: ", messages[0].id_mensagem);
-      console.log("ID OPERADOR: ", selectedChat?.id_operador);
-      console.log("CNPJ: ", selectedChat?.cnpj_operador);
       console.log("Mensagens carregadas:", result);
       if (result.length < 10) {
         const more = await fetchMoreMessages(
@@ -711,6 +732,25 @@ export default function ChatTecnico() {
     }
   };
 
+  const handleSendAudio = async (file: File) => {
+    console.log("audio gravado", file);
+    setUploading(true);
+    try {
+      const message: CreateMessageDto = {
+        id_chamado: selectedChat!.id_chamado,
+        mensagem: null,
+        remetente: PerfilEnum.TECNICO,
+        tecnico_responsavel: user?.nome,
+      };
+      const result = await uploadFile(file!, message, selectedChat!);
+      socketService.sendMessage(result);
+    } catch (error) {
+    } finally {
+      setModalOpen(false);
+      setUploading(false);
+    }
+  };
+
   if (loading)
     return (
       <div className="h-full">
@@ -805,6 +845,7 @@ export default function ChatTecnico() {
 
           {/* Input de mensagem fixo no final */}
           <div className="mt-4 gap-2 flex flex-row ">
+            <ChatAudioComponent onSend={handleSendAudio} maxDurationSec={600} />
             <input
               ref={inputRef}
               type="text"
@@ -823,6 +864,7 @@ export default function ChatTecnico() {
             <Button className="h-full" onClick={handleSendMessage}>
               <SendIcon />
             </Button>
+
             <input
               type="file"
               accept="*"

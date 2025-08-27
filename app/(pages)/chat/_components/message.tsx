@@ -8,6 +8,7 @@ import { useState } from "react";
 import { ChamadosDto } from "../_actions/dtos/chamado.dto";
 import { MessageDto } from "../_actions/dtos/message-dto";
 import { PerfilEnum } from "../_services/enums/perfil.enum";
+import AudioPlayer from "./audio-player";
 import ImageBox from "./image-box";
 import ImageModal from "./image-modal";
 
@@ -114,6 +115,20 @@ export default function Message({
               </div>
             </div>
 
+            {message.message_reply != null && (
+              <div className="mb-2 p-2 border-l-4 border-orange-300 bg-blue-700 dark:bg-blue-600 rounded">
+                <p className="text-xs font-semibold">
+                  {message.message_reply.remetente === PerfilEnum.OPERADOR
+                    ? call.nome_operador
+                    : message.message_reply.tecnico_responsavel}
+                </p>
+                <p className="text-xs truncate  dark:text-gray-300">
+                  {message.message_reply.mensagem ||
+                    message.message_reply.nome_arquivo}
+                </p>
+              </div>
+            )}
+
             {/* Se for texto puro */}
             {message.mensagem && !isYouTubeLink(message.mensagem) && (
               <p className="text-sm dark:text-foreground">{message.mensagem}</p>
@@ -164,6 +179,30 @@ export default function Message({
                 {message.nome_arquivo}
               </a>
             )}
+
+            {/* Se for um arquivo de audio webm, mp3 */}
+            {fileType === "audio" && (
+              <div className="mt-2 flex flex-col gap-2">
+                {/* Player de áudio */}
+                {/* <audio controls className="w-full rounded-lg">
+                  <source src={getFileUrl()} type="audio/webm" />
+                  <source src={getFileUrl()} type="audio/mp3" />
+                  Seu navegador não suporta o player de áudio.
+                </audio> */}
+                <AudioPlayer apiUrl={getFileUrl()} />
+
+                {/* Botão de download */}
+                <a
+                  href={getFileUrl()}
+                  download={message.nome_arquivo}
+                  className="bg-blue-700 text-white px-3 py-2 rounded-lg text-sm flex items-center gap-2"
+                >
+                  <LucideDownload size={18} />
+                  {message.nome_arquivo}
+                </a>
+              </div>
+            )}
+
             {fileType === "other" && (
               <a
                 href={getFileUrl()} // Certifique-se de que `fileUrl` seja um link válido
