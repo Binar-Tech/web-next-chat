@@ -17,6 +17,7 @@ interface MessageProps {
   isCurrentUser: boolean;
   call: ChamadosDto;
   nomeLogado: string;
+  isReply: boolean;
   onCustomAction?: (flag: boolean) => void;
 }
 
@@ -26,6 +27,7 @@ export default function Message({
   call,
   nomeLogado,
   onCustomAction,
+  isReply = false,
 }: MessageProps) {
   const [modalOpen, setModalOpen] = useState(false);
   // Base URL para buscar arquivos
@@ -58,17 +60,34 @@ export default function Message({
 
   //verifica qual nome exibir no box da mensagem {voce, operador, ou tecnico}
   function handleNameUserOnMessageBox(): string {
+    // 🔹 Se for uma RESPOSTA (reply)
+    if (isReply) {
+      if (message.remetente === PerfilEnum.OPERADOR) {
+        // Se o operador for o logado → Você
+        return call.nome_operador === nomeLogado ? "Você" : call.nome_operador;
+      } else {
+        // Técnico
+        return message.tecnico_responsavel === nomeLogado
+          ? "Você"
+          : message.tecnico_responsavel;
+      }
+    }
+
+    // 🔹 Se for a mensagem principal
     if (isCurrentUser) {
       if (message.remetente === PerfilEnum.TECNICO) {
-        if (message.tecnico_responsavel === nomeLogado) {
-          return "Você";
-        }
-        return message.tecnico_responsavel;
-      } else return "Você";
+        return message.tecnico_responsavel === nomeLogado
+          ? "Você"
+          : message.tecnico_responsavel;
+      } else {
+        return "Você";
+      }
     } else {
       if (message.remetente === PerfilEnum.OPERADOR) {
         return call.nome_operador;
-      } else return message.tecnico_responsavel;
+      } else {
+        return message.tecnico_responsavel;
+      }
     }
   }
 
@@ -86,17 +105,42 @@ export default function Message({
             isCurrentUser ? "justify-end" : "justify-start"
           } mb-2`}
         >
+          {/* Reply indicator
+          {!isReply && isCurrentUser && (
+            <div className="p-1 flex items-center justify-center ">
+              <DropdownMenu>
+                <DropdownMenuTrigger className="border-none outline-none ring-0 focus:outline-none focus:ring-0">
+                  <EllipsisVerticalIcon size={16} />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="">
+                  <DropdownMenuItem>
+                    <Reply size={14} />
+                    <div>Responder</div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <Trash size={14} />
+                    <div>Apagar</div>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          )} */}
+          {/* Espaço para alinhamento */}
           <div
             className={`max-w-xl min-w-60 p-2 rounded-lg ${
-              isCurrentUser
-                ? "bg-blue-500 text-white"
-                : "bg-gray-200 dark:bg-neutral-600 text-gray-800 dark: text-foreground"
+              isReply
+                ? isCurrentUser
+                  ? "bg-blue-600"
+                  : "bg-gray-300 dark:bg-neutral-700"
+                : isCurrentUser
+                ? "bg-blue-500"
+                : "bg-gray-200 dark:bg-neutral-600"
             }`}
           >
             {/* cabeçalho do box da mensagem, com nome e data */}
             <div className="flex flex-1 w-full flex-row justify-between items-center mb-2">
               <div
-                className={`text-xs pr-4 ${
+                className={`${isReply ? "text-[11px]" : "text-xs"}  pr-4 ${
                   isCurrentUser
                     ? "text-muted dark:text-foreground font-semibold font-serif"
                     : "text-orange-400 dark:text-orange-400 font-extrabold font-serif"
@@ -115,23 +159,25 @@ export default function Message({
               </div>
             </div>
 
-            {message.message_reply != null && (
-              <div className="mb-2 p-2 border-l-4 border-orange-300 bg-blue-700 dark:bg-blue-600 rounded">
-                <p className="text-xs font-semibold">
-                  {message.message_reply.remetente === PerfilEnum.OPERADOR
-                    ? call.nome_operador
-                    : message.message_reply.tecnico_responsavel}
-                </p>
-                <p className="text-xs truncate  dark:text-gray-300">
-                  {message.message_reply.mensagem ||
-                    message.message_reply.nome_arquivo}
-                </p>
-              </div>
+            {message.message_reply && (
+              <Message
+                message={message.message_reply}
+                isCurrentUser={isCurrentUser}
+                call={call}
+                nomeLogado={nomeLogado}
+                isReply={true}
+              />
             )}
 
             {/* Se for texto puro */}
             {message.mensagem && !isYouTubeLink(message.mensagem) && (
-              <p className="text-sm dark:text-foreground">{message.mensagem}</p>
+              <p
+                className={`${isReply ? "text-xs" : "text-sm"} ${
+                  isCurrentUser ? "text-muted" : ""
+                }  dark:text-foreground`}
+              >
+                {message.mensagem}
+              </p>
             )}
 
             {/* Se for um link do YouTube */}
@@ -192,14 +238,6 @@ export default function Message({
                 <AudioPlayer apiUrl={getFileUrl()} />
 
                 {/* Botão de download */}
-                <a
-                  href={getFileUrl()}
-                  download={message.nome_arquivo}
-                  className="bg-blue-700 text-white px-3 py-2 rounded-lg text-sm flex items-center gap-2"
-                >
-                  <LucideDownload size={18} />
-                  {message.nome_arquivo}
-                </a>
               </div>
             )}
 
@@ -237,6 +275,27 @@ export default function Message({
               imageUrl={`${message.caminho_arquivo_ftp}/${message.nome_arquivo}`}
             />
           </div>
+          {/* Se NÃO for usuário logado, R vem DEPOIS do box
+          {!isReply && !isCurrentUser && (
+            <div className="p-1 flex items-center justify-center ">
+              <DropdownMenu>
+                <DropdownMenuTrigger className="border-none outline-none ring-0 focus:outline-none focus:ring-0">
+                  <EllipsisVerticalIcon size={16} />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="">
+                  <DropdownMenuItem>
+                    <Reply size={14} />
+                    <div>Responder</div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <Trash size={14} />
+                    <div>Apagar</div>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          )} */}
+          <div />
         </div>
       )}
     </>

@@ -242,12 +242,18 @@ export default function AudioRecorderPopup({
 
   const handleSend = async () => {
     if (!recording || !onSend) return;
+
     const file = new File([recording.blob], `audio-${recording.id}.webm`, {
       type: recording.blob.type,
     });
+
     await onSend(file, recording.duration);
-    setRecording(null);
-    setShowPopup(false);
+
+    // só limpar depois que terminar mesmo
+    setTimeout(() => {
+      setRecording(null);
+      setShowPopup(false);
+    }, 0);
   };
 
   const handleCancel = () => {
@@ -378,7 +384,8 @@ export default function AudioRecorderPopup({
               </button>
               <audio ref={audioRef} src={recording?.url} controls />
               <button
-                onClick={finalizeRecording}
+                type="button"
+                onClick={handleSend}
                 className="p-3 rounded-full bg-green-600 hover:bg-green-700"
               >
                 <Send size={20} />
@@ -397,6 +404,7 @@ export default function AudioRecorderPopup({
               </button>
               <audio ref={audioRef} src={recording?.url} controls />
               <button
+                type="button"
                 onClick={handleSend}
                 className="p-3 rounded-full bg-green-600 hover:bg-green-700"
               >

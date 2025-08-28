@@ -153,7 +153,6 @@ export default function WhatsAppAudioPlayer({
         {/* Tempo */}
         <div className="text-xs dark:text-muted-foreground text-gray-600 flex justify-between mt-1">
           <span>{formatTime(currentTime)}</span>
-          <span>{formatTime(duration)}</span>
         </div>
       </div>
 
