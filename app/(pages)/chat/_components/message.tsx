@@ -17,7 +17,7 @@ interface MessageProps {
   isCurrentUser: boolean;
   call: ChamadosDto;
   nomeLogado: string;
-  isReply: boolean;
+  isReply?: boolean;
   onCustomAction?: (flag: boolean) => void;
 }
 
