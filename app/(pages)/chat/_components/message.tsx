@@ -194,16 +194,19 @@ export default function Message({
     );
   }
 
+  function handleReplyActions(action: MessageAction) {
+    // Lógica para lidar com a ação de resposta
+    console.log("Ação de resposta selecionada:", action);
+  }
+
   return (
     <div
       className={`flex ${isCurrentUser ? "justify-end" : "justify-start"} mb-2`}
     >
       {!isReply && isCurrentUser && (
         <MessageReplyActions
-          hideButtonEdit={false}
-          onClick={function (action: MessageAction): void {
-            throw new Error("Function not implemented.");
-          }}
+          hideButtonEdit={fileType != null}
+          onClick={handleReplyActions}
         />
       )}
       <div className={messageBoxClasses}>
