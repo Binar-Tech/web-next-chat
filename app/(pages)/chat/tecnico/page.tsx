@@ -808,7 +808,7 @@ export default function ChatTecnico() {
                   prevMessage && prevMessage.id_chamado !== message.id_chamado;
 
                 return (
-                  <div key={message.id_mensagem}>
+                  <div key={`${message.id_mensagem}-root`}>
                     {/* Exibir divisor de chamado */}
                     {isNewChamado && (
                       <NewCallSeparator id_chamado={message.id_chamado} />

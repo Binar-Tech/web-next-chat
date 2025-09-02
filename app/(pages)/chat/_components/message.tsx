@@ -1,16 +1,21 @@
 "use client";
 
-import { Button } from "@/app/components/ui/button";
 import { formatDate } from "@/app/utils/data";
 import { getFileType } from "@/app/utils/file";
-import { LucideDownload } from "lucide-react";
+import clsx from "clsx";
 import { useState } from "react";
 import { ChamadosDto } from "../_actions/dtos/chamado.dto";
 import { MessageDto } from "../_actions/dtos/message-dto";
 import { PerfilEnum } from "../_services/enums/perfil.enum";
-import AudioPlayer from "./audio-player";
-import ImageBox from "./image-box";
 import ImageModal from "./image-modal";
+import MessageActions from "./message-actions";
+import MessageAudio from "./message-audio";
+import MessageFile from "./message-file";
+import MessageImage from "./message-image";
+import MessageReplyActions, { MessageAction } from "./message-reply-actions";
+import MessageText from "./message-text";
+import MessageVideo from "./message-video";
+import MessageHeader from "./message.header";
 
 interface MessageProps {
   message: MessageDto;
@@ -60,7 +65,7 @@ export default function Message({
 
   //verifica qual nome exibir no box da mensagem {voce, operador, ou tecnico}
   function handleNameUserOnMessageBox(): string {
-    // 🔹 Se for uma RESPOSTA (reply)
+    // Se for uma RESPOSTA (reply)
     if (isReply) {
       if (message.remetente === PerfilEnum.OPERADOR) {
         // Se o operador for o logado → Você
@@ -73,7 +78,7 @@ export default function Message({
       }
     }
 
-    // 🔹 Se for a mensagem principal
+    // Se for a mensagem principal
     if (isCurrentUser) {
       if (message.remetente === PerfilEnum.TECNICO) {
         return message.tecnico_responsavel === nomeLogado
@@ -91,213 +96,155 @@ export default function Message({
     }
   }
 
+  // Nome exibido na mensagem
+  function getDisplayName(): string {
+    if (isReply) {
+      if (message.remetente === PerfilEnum.OPERADOR) {
+        return call.nome_operador === nomeLogado ? "Você" : call.nome_operador;
+      }
+      return message.tecnico_responsavel === nomeLogado
+        ? "Você"
+        : message.tecnico_responsavel;
+    }
+
+    if (isCurrentUser) {
+      if (message.remetente === PerfilEnum.TECNICO) {
+        return message.tecnico_responsavel === nomeLogado
+          ? "Você"
+          : message.tecnico_responsavel;
+      }
+      return "Você";
+    }
+
+    return message.remetente === PerfilEnum.OPERADOR
+      ? call.nome_operador
+      : message.tecnico_responsavel;
+  }
+
+  // Estilo do box
+  const messageBoxClasses = clsx(
+    "max-w-xl min-w-60 p-2 rounded-lg",
+    isReply
+      ? isCurrentUser
+        ? "bg-blue-600"
+        : "bg-gray-300 dark:bg-neutral-700"
+      : isCurrentUser
+      ? "bg-blue-500"
+      : "bg-gray-200 dark:bg-neutral-600"
+  );
+
+  // Renderizador de conteúdo
+  function renderContent() {
+    if (message.mensagem && !isYouTubeLink(message.mensagem)) {
+      return (
+        <MessageText
+          text={message.mensagem}
+          isReply={isReply}
+          isCurrentUser={isCurrentUser}
+        />
+      );
+    }
+
+    if (message.mensagem && isYouTubeLink(message.mensagem)) {
+      return (
+        <iframe
+          width="250"
+          height="140"
+          src={getYouTubeEmbedUrl(message.mensagem)}
+          title="YouTube video"
+          frameBorder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+          loading="lazy"
+          referrerPolicy="no-referrer-when-downgrade"
+          className="rounded-lg"
+        />
+      );
+    }
+
+    if (fileType === "imagem") {
+      return (
+        <MessageImage src={getFileUrl()} onClick={() => setModalOpen(true)} />
+      );
+    }
+
+    if (fileType === "video") {
+      return <MessageVideo src={getVideoUrl()} />;
+    }
+
+    if (fileType === "arquivo" || fileType === "other") {
+      return <MessageFile src={getFileUrl()} filename={message.nome_arquivo} />;
+    }
+
+    if (fileType === "audio") {
+      return <MessageAudio src={getFileUrl()} />;
+    }
+
+    return null;
+  }
+
+  // Mensagem do sistema
+  if (message.system_message) {
+    return (
+      <div className="flex justify-center mb-4">
+        <div className="max-w-xl min-w-60 p-3 rounded-lg bg-orange-500 text-white">
+          <p>{message.mensagem}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <>
-      {message.system_message ? (
-        <div className={`flex justify-center mb-4`}>
-          <div className="max-w-xl min-w-60 p-3 rounded-lg bg-orange-500 text-white ">
-            <p>{message.mensagem}</p>
-          </div>
-        </div>
-      ) : (
-        <div
-          className={`flex ${
-            isCurrentUser ? "justify-end" : "justify-start"
-          } mb-2`}
-        >
-          {/* Reply indicator
-          {!isReply && isCurrentUser && (
-            <div className="p-1 flex items-center justify-center ">
-              <DropdownMenu>
-                <DropdownMenuTrigger className="border-none outline-none ring-0 focus:outline-none focus:ring-0">
-                  <EllipsisVerticalIcon size={16} />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="">
-                  <DropdownMenuItem>
-                    <Reply size={14} />
-                    <div>Responder</div>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <Trash size={14} />
-                    <div>Apagar</div>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          )} */}
-          {/* Espaço para alinhamento */}
-          <div
-            className={`max-w-xl min-w-60 p-2 rounded-lg ${
-              isReply
-                ? isCurrentUser
-                  ? "bg-blue-600"
-                  : "bg-gray-300 dark:bg-neutral-700"
-                : isCurrentUser
-                ? "bg-blue-500"
-                : "bg-gray-200 dark:bg-neutral-600"
-            }`}
-          >
-            {/* cabeçalho do box da mensagem, com nome e data */}
-            <div className="flex flex-1 w-full flex-row justify-between items-center mb-2">
-              <div
-                className={`${isReply ? "text-[11px]" : "text-xs"}  pr-4 ${
-                  isCurrentUser
-                    ? "text-muted dark:text-foreground font-semibold font-serif"
-                    : "text-orange-400 dark:text-orange-400 font-extrabold font-serif"
-                } `}
-              >
-                {handleNameUserOnMessageBox()}
-              </div>
-              <div
-                className={`text-[.7rem] ${
-                  isCurrentUser
-                    ? "text-muted dark:text-foreground"
-                    : "text-muted-foreground dark:text-gray-300"
-                } `}
-              >
-                {formatDate(message.data)}
-              </div>
-            </div>
-
-            {message.message_reply && (
-              <Message
-                message={message.message_reply}
-                isCurrentUser={isCurrentUser}
-                call={call}
-                nomeLogado={nomeLogado}
-                isReply={true}
-              />
-            )}
-
-            {/* Se for texto puro */}
-            {message.mensagem && !isYouTubeLink(message.mensagem) && (
-              <p
-                className={`${isReply ? "text-xs" : "text-sm"} ${
-                  isCurrentUser ? "text-muted" : ""
-                }  dark:text-foreground`}
-              >
-                {message.mensagem}
-              </p>
-            )}
-
-            {/* Se for um link do YouTube */}
-            {message.mensagem && isYouTubeLink(message.mensagem) && (
-              <iframe
-                width="250"
-                height="140"
-                src={getYouTubeEmbedUrl(message.mensagem)}
-                title="YouTube video"
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                className="rounded-lg"
-              ></iframe>
-            )}
-
-            {/* Se for uma imagem */}
-            {fileType === "imagem" && (
-              <ImageBox
-                onClickImage={() => setModalOpen(true)}
-                key={message.id_mensagem}
-                src={getFileUrl()}
-              />
-            )}
-
-            {/* Se for um vídeo */}
-            {fileType === "video" && (
-              <div className="w-[250px] h-[440px] ">
-                <video controls className="w-full h-full rounded-lg">
-                  <source src={getVideoUrl()} type="video/mp4" />
-                  Seu navegador não suporta vídeos.
-                </video>
-              </div>
-            )}
-
-            {/* Se for um arquivo (PDF, TXT, etc.) */}
-            {fileType === "arquivo" && (
-              <a
-                href={getFileUrl()}
-                download={message.nome_arquivo}
-                rel=""
-                className=" mt-2 bg-blue-700 text-white px-3 py-2 rounded-lg text-sm text-center content-center flex flex-row items-center gap-2"
-              >
-                <LucideDownload size={18} />
-                {message.nome_arquivo}
-              </a>
-            )}
-
-            {/* Se for um arquivo de audio webm, mp3 */}
-            {fileType === "audio" && (
-              <div className="mt-2 flex flex-col gap-2">
-                {/* Player de áudio */}
-                {/* <audio controls className="w-full rounded-lg">
-                  <source src={getFileUrl()} type="audio/webm" />
-                  <source src={getFileUrl()} type="audio/mp3" />
-                  Seu navegador não suporta o player de áudio.
-                </audio> */}
-                <AudioPlayer apiUrl={getFileUrl()} />
-
-                {/* Botão de download */}
-              </div>
-            )}
-
-            {fileType === "other" && (
-              <a
-                href={getFileUrl()} // Certifique-se de que `fileUrl` seja um link válido
-                download={message.nome_arquivo} // Define o nome do arquivo para download
-                rel=""
-                className="mt-2 bg-blue-700 text-white px-3 py-2 rounded-lg text-sm text-center flex flex-row items-center gap-2"
-              >
-                <LucideDownload size={18} />
-                {message.nome_arquivo}
-              </a>
-            )}
-
-            {message.avaliation_buttons && (
-              <div className="flex flex-row items-center justify-center gap-2 pt-4">
-                <Button
-                  className="flex flex-1"
-                  onClick={() => onCustomAction?.(true)}
-                >
-                  Avaliar
-                </Button>
-                <Button
-                  className="bg-red-700 hover:bg-red-600 flex flex-1"
-                  onClick={() => onCustomAction?.(false)}
-                >
-                  Agora não!
-                </Button>
-              </div>
-            )}
-            <ImageModal
-              open={modalOpen}
-              onClose={() => setModalOpen(false)}
-              imageUrl={`${message.caminho_arquivo_ftp}/${message.nome_arquivo}`}
-            />
-          </div>
-          {/* Se NÃO for usuário logado, R vem DEPOIS do box
-          {!isReply && !isCurrentUser && (
-            <div className="p-1 flex items-center justify-center ">
-              <DropdownMenu>
-                <DropdownMenuTrigger className="border-none outline-none ring-0 focus:outline-none focus:ring-0">
-                  <EllipsisVerticalIcon size={16} />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="">
-                  <DropdownMenuItem>
-                    <Reply size={14} />
-                    <div>Responder</div>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <Trash size={14} />
-                    <div>Apagar</div>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          )} */}
-          <div />
-        </div>
+    <div
+      className={`flex ${isCurrentUser ? "justify-end" : "justify-start"} mb-2`}
+    >
+      {!isReply && isCurrentUser && (
+        <MessageReplyActions
+          hideButtonEdit={false}
+          onClick={function (action: MessageAction): void {
+            throw new Error("Function not implemented.");
+          }}
+        />
       )}
-    </>
+      <div className={messageBoxClasses}>
+        <MessageHeader
+          name={getDisplayName()}
+          date={formatDate(message.data)}
+          isReply={isReply}
+          isCurrentUser={isCurrentUser}
+        />
+
+        {message.message_reply && (
+          <Message
+            key={`${message.message_reply.id_mensagem}-reply`}
+            message={message.message_reply}
+            isCurrentUser={isCurrentUser}
+            call={call}
+            nomeLogado={nomeLogado}
+            isReply
+          />
+        )}
+
+        {renderContent()}
+
+        {message.avaliation_buttons && (
+          <MessageActions onCustomAction={onCustomAction} />
+        )}
+
+        <ImageModal
+          open={modalOpen}
+          onClose={() => setModalOpen(false)}
+          imageUrl={`${message.caminho_arquivo_ftp}/${message.nome_arquivo}`}
+        />
+      </div>
+      {!isReply && !isCurrentUser && (
+        <MessageReplyActions
+          hideButtonEdit={false}
+          onClick={function (action: MessageAction): void {
+            throw new Error("Function not implemented.");
+          }}
+        />
+      )}
+    </div>
   );
 }
