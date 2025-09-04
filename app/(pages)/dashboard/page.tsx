@@ -92,7 +92,6 @@ export default function Dashboard() {
   }, []);
 
   const onCallClosed = useCallback((data: ChamadosDto) => {
-    console.log("CHAMADO FECHADO: ", data);
     setCalls((prev) =>
       prev
         ? prev.map((c) =>
@@ -124,7 +123,6 @@ export default function Dashboard() {
 
       const result = await fetchAllCallsPaginated();
       const lastCalls = await findLastSevenCalls();
-      console.log("CALLS: ", result);
       const opennedCalls = await fetchCallsByIdTecnico();
 
       setCalls(result);

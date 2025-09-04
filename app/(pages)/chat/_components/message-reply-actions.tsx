@@ -12,11 +12,13 @@ import ConfirmDialog from "./confirm-dialog";
 export type MessageAction = "reply" | "delete" | "edit";
 
 interface MessageReplyActionsProps {
+  isCurrentUser: boolean;
   hideButtonEdit?: boolean;
   onClick: (action: MessageAction) => void;
 }
 
 export default function MessageReplyActions({
+  isCurrentUser,
   onClick,
   hideButtonEdit = false,
 }: MessageReplyActionsProps) {
@@ -38,15 +40,16 @@ export default function MessageReplyActions({
             <Reply size={14} /> <div>Responder</div>
           </DropdownMenuItem>
 
-          {!hideButtonEdit && (
+          {!hideButtonEdit && isCurrentUser && (
             <DropdownMenuItem onClick={() => onClick("edit")}>
               <Edit size={14} /> <div>Editar</div>
             </DropdownMenuItem>
           )}
-
-          <DropdownMenuItem onClick={handleOpenConfirm}>
-            <Trash size={14} /> <div>Apagar</div>
-          </DropdownMenuItem>
+          {isCurrentUser && (
+            <DropdownMenuItem onClick={handleOpenConfirm}>
+              <Trash size={14} /> <div>Apagar</div>
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
 

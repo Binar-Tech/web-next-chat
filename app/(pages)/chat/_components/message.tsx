@@ -1,7 +1,7 @@
 "use client";
 
 import { formatDate } from "@/app/utils/data";
-import { getFileType } from "@/app/utils/file";
+import { getFileType, getFileUrl } from "@/app/utils/file";
 import clsx from "clsx";
 import { useState } from "react";
 import { ChamadosDto } from "../_actions/dtos/chamado.dto";
@@ -24,6 +24,7 @@ interface MessageProps {
   nomeLogado: string;
   isReply?: boolean;
   onCustomAction?: (flag: boolean) => void;
+  onClickMessageActions?: (action: MessageAction, message: MessageDto) => void;
 }
 
 export default function Message({
@@ -33,6 +34,7 @@ export default function Message({
   nomeLogado,
   onCustomAction,
   isReply = false,
+  onClickMessageActions,
 }: MessageProps) {
   const [modalOpen, setModalOpen] = useState(false);
   // Base URL para buscar arquivos
@@ -51,11 +53,6 @@ export default function Message({
     return match ? `https://www.youtube.com/embed/${match[1]}` : "";
   };
 
-  // Função para obter a URL do arquivo
-  const getFileUrl = () => {
-    return `${fileBaseUrl}?path=${message.caminho_arquivo_ftp}/${message.nome_arquivo}`;
-  };
-
   const getVideoUrl = () => {
     return `${fileBaseUrl}/videos?path=${message.caminho_arquivo_ftp}/${message.nome_arquivo}`;
   };
@@ -64,39 +61,6 @@ export default function Message({
   const fileType = getFileType(message.nome_arquivo);
 
   //verifica qual nome exibir no box da mensagem {voce, operador, ou tecnico}
-  function handleNameUserOnMessageBox(): string {
-    // Se for uma RESPOSTA (reply)
-    if (isReply) {
-      if (message.remetente === PerfilEnum.OPERADOR) {
-        // Se o operador for o logado → Você
-        return call.nome_operador === nomeLogado ? "Você" : call.nome_operador;
-      } else {
-        // Técnico
-        return message.tecnico_responsavel === nomeLogado
-          ? "Você"
-          : message.tecnico_responsavel;
-      }
-    }
-
-    // Se for a mensagem principal
-    if (isCurrentUser) {
-      if (message.remetente === PerfilEnum.TECNICO) {
-        return message.tecnico_responsavel === nomeLogado
-          ? "Você"
-          : message.tecnico_responsavel;
-      } else {
-        return "Você";
-      }
-    } else {
-      if (message.remetente === PerfilEnum.OPERADOR) {
-        return call.nome_operador;
-      } else {
-        return message.tecnico_responsavel;
-      }
-    }
-  }
-
-  // Nome exibido na mensagem
   function getDisplayName(): string {
     if (isReply) {
       if (message.remetente === PerfilEnum.OPERADOR) {
@@ -164,7 +128,10 @@ export default function Message({
 
     if (fileType === "imagem") {
       return (
-        <MessageImage src={getFileUrl()} onClick={() => setModalOpen(true)} />
+        <MessageImage
+          src={getFileUrl(message)}
+          onClick={() => setModalOpen(true)}
+        />
       );
     }
 
@@ -173,11 +140,16 @@ export default function Message({
     }
 
     if (fileType === "arquivo" || fileType === "other") {
-      return <MessageFile src={getFileUrl()} filename={message.nome_arquivo} />;
+      return (
+        <MessageFile
+          src={getFileUrl(message)}
+          filename={message.nome_arquivo}
+        />
+      );
     }
 
     if (fileType === "audio") {
-      return <MessageAudio src={getFileUrl()} />;
+      return <MessageAudio src={getFileUrl(message)} />;
     }
 
     return null;
@@ -196,7 +168,7 @@ export default function Message({
 
   function handleReplyActions(action: MessageAction) {
     // Lógica para lidar com a ação de resposta
-    console.log("Ação de resposta selecionada:", action);
+    onClickMessageActions && onClickMessageActions(action, message);
   }
 
   return (
@@ -205,6 +177,7 @@ export default function Message({
     >
       {!isReply && isCurrentUser && (
         <MessageReplyActions
+          isCurrentUser={isCurrentUser}
           hideButtonEdit={fileType != null}
           onClick={handleReplyActions}
         />
@@ -219,6 +192,7 @@ export default function Message({
 
         {message.message_reply && (
           <Message
+            onClickMessageActions={onClickMessageActions}
             key={`${message.message_reply.id_mensagem}-reply`}
             message={message.message_reply}
             isCurrentUser={isCurrentUser}
@@ -242,10 +216,9 @@ export default function Message({
       </div>
       {!isReply && !isCurrentUser && (
         <MessageReplyActions
-          hideButtonEdit={false}
-          onClick={function (action: MessageAction): void {
-            throw new Error("Function not implemented.");
-          }}
+          isCurrentUser={isCurrentUser}
+          hideButtonEdit={fileType != null}
+          onClick={handleReplyActions}
         />
       )}
     </div>

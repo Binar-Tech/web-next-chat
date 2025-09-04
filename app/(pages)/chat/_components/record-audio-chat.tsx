@@ -253,6 +253,7 @@ export default function AudioRecorderPopup({
     setTimeout(() => {
       setRecording(null);
       setShowPopup(false);
+      finalizeRecording();
     }, 0);
   };
 
@@ -348,29 +349,12 @@ export default function AudioRecorderPopup({
 
           {/* Controles durante gravação */}
           {isRecording && !isStopped && (
-            <>
-              {!isPaused ? (
-                <button
-                  onClick={pauseRecording}
-                  className="p-2 hover:bg-gray-800 rounded-full"
-                >
-                  <Pause size={20} />
-                </button>
-              ) : (
-                <button
-                  onClick={resumeRecording}
-                  className="p-2 hover:bg-gray-800 rounded-full"
-                >
-                  <Play size={20} />
-                </button>
-              )}
-              <button
-                onClick={stopRecording}
-                className="p-2 hover:bg-gray-800 rounded-full"
-              >
-                <Square size={20} />
-              </button>
-            </>
+            <button
+              onClick={stopRecording}
+              className="p-2 hover:bg-gray-800 rounded-full"
+            >
+              <Square size={20} />
+            </button>
           )}
 
           {/* Preview depois de stop, com opção de continuar gravando */}

@@ -7,4 +7,5 @@ export interface CreateMessageDto {
   nome_arquivo?: string | null;
   tecnico_responsavel?: string | null;
   caminho_arquivo_ftp?: string | null;
+  id_mensagem_reply?: number | null;
 }

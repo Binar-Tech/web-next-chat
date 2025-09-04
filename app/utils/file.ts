@@ -1,3 +1,6 @@
+import { MessageDto } from "../(pages)/chat/_actions/dtos/message-dto";
+const fileBaseUrl = process.env.NEXT_PUBLIC_URL_API_FILES;
+
 export const getFileType = (nome_arquivo: string): string | null => {
   if (!nome_arquivo) return null;
   const ext = nome_arquivo.split(".").pop()?.toLowerCase();
@@ -14,4 +17,8 @@ export const getFileType = (nome_arquivo: string): string | null => {
     if (audioExtension.includes(ext)) return "audio";
   }
   return "other";
+};
+
+export const getFileUrl = (message: MessageDto) => {
+  return `${fileBaseUrl}?path=${message.caminho_arquivo_ftp}/${message.nome_arquivo}`;
 };

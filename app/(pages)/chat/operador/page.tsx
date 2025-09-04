@@ -6,13 +6,17 @@ import { SendIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MessageDto } from "../_actions/dtos/message-dto";
+import EditMessageDialog from "../_components/edit-message-modal";
 
 import { useAuth } from "@/app/hooks/useAuth";
+import { useNotify } from "@/app/hooks/useToast";
+import { canEditMessage } from "@/app/utils/canEditMessage";
 import { formatDateTimeToDate } from "@/app/utils/data";
-import { useToast } from "@/hooks/use-toast";
 import { FaPaperclip } from "react-icons/fa";
 import {
   closeCallById,
+  deleteMessage,
+  editMessage,
   findQuestions,
   sendAvaliation,
   uploadFile,
@@ -26,11 +30,13 @@ import { User } from "../_actions/dtos/user.interface";
 import ErrorPage from "../_components/error-page";
 import NewMessageButton from "../_components/float-buttom-messages";
 import ImagePreviewModal from "../_components/image-preview-modal";
+import { MessageAction } from "../_components/message-reply-actions";
 import ModalAvaliation from "../_components/modal-avaliation";
 import ModalDragdrop from "../_components/modal-dragdrop";
 import NewCallSeparator from "../_components/new-call-separator";
 import NewDateSeparator from "../_components/new-date-separator";
 import ChatAudioComponent from "../_components/record-audio-chat";
+import { ReplyMessagePreview } from "../_components/reply-message-preview";
 import { useChatMessages } from "../_hooks/useChatMessages";
 import { PerfilEnum } from "../_services/enums/perfil.enum";
 import { eventManager } from "../_services/socket/eventManager";
@@ -43,7 +49,7 @@ export default function ChatOperador() {
   // const cnpj = useSearchParam("cnpj") ?? null;
   const { user, isAuthenticated, token } = useAuth();
   const [errorPage, setErrorPage] = useState("");
-  const { toast } = useToast();
+  const { errorToast, infoToast, successToast } = useNotify();
 
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [showNewMessageButton, setShowNewMessageButton] = useState(false);
@@ -60,6 +66,11 @@ export default function ChatOperador() {
   const [uploading, setUploading] = useState(false);
   const [modalDragdrop, setModalDragdrop] = useState(false);
   const [questoesAvaliacao, setQuestoesAvaliacao] = useState<QuestoesDto[]>([]);
+  const [replyingTo, setReplyingTo] = useState<MessageDto | null>(null);
+  const [editMessageModalOpen, setEditMessageModalOpen] = useState(false);
+  const [selectedMessage, setSelectedMessage] = useState<MessageDto | null>(
+    null
+  );
 
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -311,6 +322,44 @@ export default function ChatOperador() {
     ]
   );
 
+  const handleDeleteMessage = useCallback((message: MessageDto) => {
+    // Só atualiza se a mensagem pertence ao chat selecionado
+
+    setMessages((prev) =>
+      prev
+        .filter((m) => m.id_mensagem !== message.id_mensagem) // remove a mensagem principal
+        .map((m) => {
+          // Atualiza o message_reply caso o pai tenha um reply com esse id
+          if (m.message_reply?.id_mensagem === message.id_mensagem) {
+            return { ...m, message_reply: undefined }; // remove o reply
+          }
+          return m; // mantém mensagens que não são afetadas
+        })
+    );
+  }, []);
+
+  const handleUpdateMessage = useCallback((message: MessageDto) => {
+    //verifica se o chat selecionado é igual ao da mensagem que veio, para atualizar na tela
+
+    //atualiza a mensagem da lista
+    setMessages((prev) =>
+      prev.map((m) => {
+        // Se for a própria mensagem que chegou, substitui
+        if (m.id_mensagem === message.id_mensagem) return message;
+
+        // Se for uma mensagem que tem um reply igual ao id que chegou
+        if (m.message_reply?.id_mensagem === message.id_mensagem) {
+          return {
+            ...m,
+            message_reply: message, // atualiza apenas o reply
+          };
+        }
+
+        return m; // mantém tudo igual
+      })
+    );
+  }, []);
+
   // Efeitos de Drag & Drop
   const handleDragEnter = useCallback((event: DragEvent) => {
     event.preventDefault();
@@ -372,6 +421,8 @@ export default function ChatOperador() {
     eventManager.on("entered-call", onEnteredCall);
     eventManager.on("leaved-call", onLeaveCall);
     eventManager.on("closed-call", onCallClosed);
+    eventManager.on("delete-message", handleDeleteMessage);
+    eventManager.on("update-message", handleUpdateMessage);
 
     return () => {
       eventManager.off("connect", loginSocket);
@@ -381,6 +432,8 @@ export default function ChatOperador() {
       eventManager.off("entered-call", onEnteredCall);
       eventManager.off("leaved-call", onLeaveCall);
       eventManager.off("closed-call", onCallClosed);
+      eventManager.off("delete-message", handleDeleteMessage);
+      eventManager.off("update-message", handleUpdateMessage);
     };
   }, [
     "handleLogged",
@@ -480,6 +533,7 @@ export default function ChatOperador() {
       mensagem: message,
       remetente: PerfilEnum.OPERADOR,
       tecnico_responsavel: null,
+      id_mensagem_reply: replyingTo ? replyingTo.id_mensagem : null,
     };
 
     socketService.sendMessage(newMessage);
@@ -508,9 +562,11 @@ export default function ChatOperador() {
         mensagem: null,
         remetente: PerfilEnum.OPERADOR,
         nome_arquivo: fileUpload!.name,
+        id_mensagem_reply: replyingTo ? replyingTo.id_mensagem : null,
       };
       const result = await uploadFile(fileUpload!, message, call!.chamado!);
       socketService.sendMessage(result);
+      setReplyingTo(null); // Limpa a mensagem que está sendo respondida
     } catch (error) {
     } finally {
       setModalOpen(false);
@@ -584,19 +640,10 @@ export default function ChatOperador() {
         await closeCallById(call?.chamado.id_chamado!);
         setIsModalAvaliationOpen(false);
         setCall(null);
-        toast({
-          title: "Atendimento finalizado!",
-          description: "Obrigado por entrar em contato conosco!",
-          duration: 5000,
-        });
+        successToast("Obrigado por entrar em contato conosco!");
         router.replace(`/home?data=${token}`);
       } catch (error) {
-        toast({
-          title: "Erro!",
-          description:
-            "Não foi possível finalizar. Tente novamente mais tarde!",
-          duration: 5000,
-        });
+        errorToast("Não foi possível finalizar. Tente novamente mais tarde!");
       }
 
       return;
@@ -621,19 +668,12 @@ export default function ChatOperador() {
       await closeCallById(call?.chamado.id_chamado!);
       setIsModalAvaliationOpen(false);
       setCall(null);
-      toast({
-        title: "Avaliação enviada com sucesso!",
-        description: "Obrigado por avaliar o atendimento!",
-        duration: 5000,
-      });
+      successToast("Obrigado por avaliar o atendimento!");
       router.replace(`/home?data=${token}`);
     } catch (error) {
-      toast({
-        title: "Erro!",
-        description:
-          "Não foi possível enviar a avaliação. Tente novamente mais tarde!",
-        duration: 5000,
-      });
+      errorToast(
+        "Não foi possível enviar a avaliação. Tente novamente mais tarde!"
+      );
     }
   };
 
@@ -645,13 +685,58 @@ export default function ChatOperador() {
         mensagem: null,
         remetente: PerfilEnum.OPERADOR,
         nome_arquivo: fileUpload!.name,
+        id_mensagem_reply: replyingTo ? replyingTo.id_mensagem : null,
       };
       const result = await uploadFile(file!, message, call!.chamado!);
       socketService.sendMessage(result);
+      setReplyingTo(null);
     } catch (error) {
     } finally {
+      setModalOpen(false);
       setUploading(false);
     }
+  };
+
+  async function handleMessageActions(
+    action: MessageAction,
+    message: MessageDto
+  ) {
+    if (action === "delete") {
+      try {
+        await deleteMessage(message.id_mensagem);
+
+        successToast("Mensagem deletada com sucesso!");
+      } catch (error) {
+        errorToast("Erro ao apagar a mensagem. Tente novamente mais tarde!");
+      }
+    } else if (action === "reply") {
+      setReplyingTo(message);
+      inputRef.current?.focus();
+    } else if (action === "edit") {
+      if (canEditMessage(message.data)) {
+        setSelectedMessage(message);
+        setEditMessageModalOpen(true);
+      } else {
+        errorToast(
+          "Só é possível editar mensagens enviadas nos últimos 15 minutos."
+        );
+      }
+    }
+  }
+
+  const handleEditMessage = async (message: string, idMessage: number) => {
+    if (!message.trim()) return; // Evita envio de mensagens vazias
+
+    try {
+      await editMessage(message, idMessage);
+      successToast("Mensagem editada com sucesso!");
+    } catch (error) {
+      errorToast(
+        "Não foi possível editar a mensagem, tente novamente mais tarde."
+      );
+    }
+
+    inputRef.current?.focus(); //foca o cursor no input
   };
 
   if (loadingMessages)
@@ -698,6 +783,7 @@ export default function ChatOperador() {
 
                   {/* Exibir a mensagem normalmente */}
                   <Message
+                    onClickMessageActions={handleMessageActions}
                     onCustomAction={handleAvaliationClick}
                     call={call?.chamado!}
                     message={message}
@@ -721,59 +807,76 @@ export default function ChatOperador() {
             text={showNewMessageButtonText}
           />
         )}
-        <div className="mt-4 gap-2 flex flex-row">
-          <ChatAudioComponent onSend={handleSendAudio} maxDurationSec={60} />
-          <input
-            ref={inputRef}
-            type="text"
-            disabled={call?.chamado.status !== "ABERTO"}
-            placeholder="Mensagem..."
-            className="w-full p-2 border border-gray-30 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-          />
-          <Button
-            className="h-full bg-blue-400"
-            onClick={handleOpenFilePicker}
-            disabled={call?.chamado.status !== "ABERTO"}
-          >
-            <FaPaperclip />
-          </Button>
-          <Button
-            className="h-full"
-            onClick={handleSendMessage}
-            disabled={call?.chamado.status !== "ABERTO"}
-          >
-            <SendIcon />
-          </Button>
+        <div className="mt-4 flex flex-col gap-2">
+          {replyingTo && (
+            <ReplyMessagePreview
+              isCurrentUser={replyingTo.remetente === "OPERADOR"}
+              nomeLogado={user?.nome!}
+              message={replyingTo}
+              onCancel={() => setReplyingTo(null)}
+            />
+          )}
+          <div className="flex flex-row gap-2">
+            <ChatAudioComponent onSend={handleSendAudio} maxDurationSec={60} />
+            <input
+              ref={inputRef}
+              type="text"
+              disabled={call?.chamado.status !== "ABERTO"}
+              placeholder="Mensagem..."
+              className="w-full p-2 border border-gray-30 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+            />
+            <Button
+              className="h-full bg-blue-400"
+              onClick={handleOpenFilePicker}
+              disabled={call?.chamado.status !== "ABERTO"}
+            >
+              <FaPaperclip />
+            </Button>
+            <Button
+              className="h-full"
+              onClick={handleSendMessage}
+              disabled={call?.chamado.status !== "ABERTO"}
+            >
+              <SendIcon />
+            </Button>
 
-          <input
-            type="file"
-            accept="image/*"
-            ref={fileInputRef}
-            onChange={handleImageChange}
-            className="hidden"
-          />
-          <ImagePreviewModal
-            open={modalOpen}
-            onClose={() => setModalOpen(false)}
-            imageUrl={imageUrl}
-            onConfirm={handleConfirmUpload}
-            isUploading={uploading}
-            fileName={fileUpload?.name}
-          />
+            <input
+              type="file"
+              accept="image/*"
+              ref={fileInputRef}
+              onChange={handleImageChange}
+              className="hidden"
+            />
+            <ImagePreviewModal
+              open={modalOpen}
+              onClose={() => setModalOpen(false)}
+              imageUrl={imageUrl}
+              onConfirm={handleConfirmUpload}
+              isUploading={uploading}
+              fileName={fileUpload?.name}
+            />
 
-          <ModalDragdrop open={modalDragdrop} />
+            <EditMessageDialog
+              open={editMessageModalOpen}
+              onClose={() => setEditMessageModalOpen(false)}
+              message={selectedMessage}
+              onConfirm={handleEditMessage}
+            />
 
-          <ModalAvaliation
-            questoes={questoesAvaliacao}
-            open={isModalAvaliationOpen}
-            onClose={() => setIsModalAvaliationOpen(false)}
-            onSubmit={(answers) => {
-              handleAvaliationAwnsers(answers); // aqui você envia pro backend ou processa
-            }}
-          />
+            <ModalDragdrop open={modalDragdrop} />
+
+            <ModalAvaliation
+              questoes={questoesAvaliacao}
+              open={isModalAvaliationOpen}
+              onClose={() => setIsModalAvaliationOpen(false)}
+              onSubmit={(answers) => {
+                handleAvaliationAwnsers(answers); // aqui você envia pro backend ou processa
+              }}
+            />
+          </div>
         </div>
       </div>
     </div>

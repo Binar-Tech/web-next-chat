@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Suspense } from "react";
 import { ThemeProvider } from "./components/theme-provider";
-import { Toaster } from "./components/ui/toaster";
+
+import { Toaster } from "sonner";
 import { AuthProvider } from "./contexts/auth-context";
 import "./globals.css";
 
@@ -41,7 +42,7 @@ export default function RootLayout({
         >
           <Suspense>
             <AuthProvider>{children}</AuthProvider>
-            <Toaster />
+            <Toaster position="top-center" richColors closeButton expand />
           </Suspense>
         </ThemeProvider>
       </body>

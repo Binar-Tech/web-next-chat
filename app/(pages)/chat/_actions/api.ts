@@ -84,6 +84,38 @@ export async function fetchMessagesByIdChamado(
   return data;
 }
 
+export async function deleteMessage(id_mensagem: number): Promise<void> {
+  // Aqui você faz a lógica da API, por exemplo, uma chamada de fetch
+  const fileBaseUrl = process.env.NEXT_PUBLIC_URL_API;
+  const response = await fetch(`${fileBaseUrl}/messages/${id_mensagem}`, {
+    method: "DELETE",
+  });
+
+  if (!response.ok) {
+    throw new Error("Erro ao chamar a API");
+  }
+}
+
+export async function editMessage(
+  mensagem: string,
+  id_mensagem: number
+): Promise<void> {
+  // Aqui você faz a lógica da API, por exemplo, uma chamada de fetch
+  const fileBaseUrl = process.env.NEXT_PUBLIC_URL_API;
+
+  const response = await fetch(`${fileBaseUrl}/messages/${id_mensagem}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json", // <-- ESSENCIAL
+    },
+    body: JSON.stringify({ mensagem: mensagem }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Erro ao chamar a API");
+  }
+}
+
 export async function getLoggedUserByToken(
   token: string
 ): Promise<UserAuthDto> {

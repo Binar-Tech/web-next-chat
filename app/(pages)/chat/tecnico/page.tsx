@@ -5,12 +5,17 @@ import Message from "@/app/(pages)/chat/_components/message";
 import { Button } from "@/app/components/ui/button";
 import { useAuth } from "@/app/hooks/useAuth";
 import { formatDateTimeToDate } from "@/app/utils/data";
+
+import { useNotify } from "@/app/hooks/useToast";
+import { canEditMessage } from "@/app/utils/canEditMessage";
 import { SendIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FaPaperclip } from "react-icons/fa";
 import {
   closeCall,
   closeCallWithoutTicket,
+  deleteMessage,
+  editMessage,
   fetchOpennedCals,
   uploadFile,
 } from "../_actions/api";
@@ -25,12 +30,16 @@ import { User } from "../_actions/dtos/user.interface";
 import { RoleEnum } from "../_actions/enums/role.enum";
 import ChatList from "../_components/chat-list";
 import ChatSidebar from "../_components/chat-navbar";
+
+import EditMessageDialog from "../_components/edit-message-modal";
 import ErrorPage from "../_components/error-page";
 import NewMessageButton from "../_components/float-buttom-messages";
+import { MessageAction } from "../_components/message-reply-actions";
 import ModalDragdrop from "../_components/modal-dragdrop";
 import NewCallSeparator from "../_components/new-call-separator";
 import NewDateSeparator from "../_components/new-date-separator";
 import ChatAudioComponent from "../_components/record-audio-chat";
+import { ReplyMessagePreview } from "../_components/reply-message-preview";
 import { useChatMessages } from "../_hooks/useChatMessages";
 import { dropdownEventEmitter } from "../_services/dropdown-event/dropdown-event-emitter";
 import { PerfilEnum } from "../_services/enums/perfil.enum";
@@ -38,10 +47,8 @@ import { eventManager } from "../_services/socket/eventManager";
 import { socketService } from "../_services/socket/socketService";
 
 export default function ChatTecnico() {
-  // const searchParams = useSearchParams();
-  // const nomeTecnico = searchParams.get("nomeTecnico");
-  // const idTecnico = searchParams.get("idTecnico");
   const { user, token, isAuthenticated } = useAuth();
+  const { successToast, errorToast } = useNotify();
 
   const [calls, setCalls] = useState<ChamadosDto[] | null>(null);
   const [userLogged, setUserLogged] = useState<User>();
@@ -61,6 +68,11 @@ export default function ChatTecnico() {
   const [showNewMessageButtonText, setShowNewMessageButtonText] = useState("");
   const [lastMessageId, setLastMessageId] = useState<number | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<MessageDto | null>(null);
+  const [editMessageModalOpen, setEditMessageModalOpen] = useState(false);
+  const [selectedMessage, setSelectedMessage] = useState<MessageDto | null>(
+    null
+  );
 
   const selectedChatIdRef = useRef(selectedChatId);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -137,6 +149,45 @@ export default function ChatTecnico() {
     }
   }, []);
 
+  const handleDeleteMessage = useCallback((message: MessageDto) => {
+    // Só atualiza se a mensagem pertence ao chat selecionado
+    if (message.id_chamado === selectedChatIdRef.current) {
+      setMessages((prev) =>
+        prev
+          .filter((m) => m.id_mensagem !== message.id_mensagem) // remove a mensagem principal
+          .map((m) => {
+            // Atualiza o message_reply caso o pai tenha um reply com esse id
+            if (m.message_reply?.id_mensagem === message.id_mensagem) {
+              return { ...m, message_reply: undefined }; // remove o reply
+            }
+            return m; // mantém mensagens que não são afetadas
+          })
+      );
+    }
+  }, []);
+
+  const handleUpdateMessage = useCallback((message: MessageDto) => {
+    //verifica se o chat selecionado é igual ao da mensagem que veio, para atualizar na tela
+
+    //atualiza a mensagem da lista
+    setMessages((prev) =>
+      prev.map((m) => {
+        // Se for a própria mensagem que chegou, substitui
+        if (m.id_mensagem === message.id_mensagem) return message;
+
+        // Se for uma mensagem que tem um reply igual ao id que chegou
+        if (m.message_reply?.id_mensagem === message.id_mensagem) {
+          return {
+            ...m,
+            message_reply: message, // atualiza apenas o reply
+          };
+        }
+
+        return m; // mantém tudo igual
+      })
+    );
+  }, []);
+
   //quando o tecnico aceita um chamado em aberto
   const onCallUpdated = useCallback((data: ChamadosDto) => {
     if (data.tecnico_responsavel === user?.id) {
@@ -154,8 +205,6 @@ export default function ChatTecnico() {
       (prev) => prev?.filter((c) => c.id_chamado !== data.id_chamado) || []
     );
     if (data.tecnico_responsavel === user?.id) {
-      console.log("Chamado fechado pelo técnico logado: ", data);
-
       window.parent.postMessage(
         {
           type: "CLOSE_CALL",
@@ -215,7 +264,6 @@ export default function ChatTecnico() {
 
   const onLeaveCall = useCallback(
     ({ user, call }: { user: User; call: Call }) => {
-      console.log("call: ", call);
       if (call.chamado.id_chamado === selectedChatIdRef.current) {
         const n = Math.floor(Math.random() * (9999 - 999 + 1)) + 999;
         const message: MessageDto = {
@@ -248,8 +296,6 @@ export default function ChatTecnico() {
 
   const onCallOpen = useCallback(
     (data: ChamadosDto) => {
-      console.log("Chamado aberto: ", data);
-
       if (!userRef.current?.tipo_usuario?.includes("ADMINISTRATORS")) {
         if (!userRef.current?.blacklist?.includes(data.cnpj_operador)) return;
       }
@@ -403,6 +449,8 @@ export default function ChatTecnico() {
     eventManager.on("leaved-call", onLeaveCall);
     eventManager.on("user", onUser);
     eventManager.on("operador_exited", handleOperadorExited);
+    eventManager.on("delete-message", handleDeleteMessage);
+    eventManager.on("update-message", handleUpdateMessage);
 
     return () => {
       eventManager.off("connect", loginSocket);
@@ -415,6 +463,8 @@ export default function ChatTecnico() {
       eventManager.off("leaved-call", onLeaveCall);
       eventManager.off("user", onUser);
       eventManager.off("operador_exited", handleOperadorExited);
+      eventManager.off("delete-message", handleDeleteMessage);
+      eventManager.off("update-message", handleUpdateMessage);
 
       //socketService.disconnect();
     };
@@ -549,7 +599,6 @@ export default function ChatTecnico() {
     try {
       const result = await fetchMessages(chatId, 1, 10);
 
-      console.log("Mensagens carregadas:", result);
       if (result.length < 10) {
         const more = await fetchMoreMessages(
           resultCall?.id_operador?.toString() ?? "",
@@ -557,8 +606,6 @@ export default function ChatTecnico() {
           result[0].id_mensagem ?? null,
           10
         );
-
-        console.log("Mais mensagens carregadas:", more);
       }
       scrollToBottom();
     } catch (error) {}
@@ -623,9 +670,12 @@ export default function ChatTecnico() {
       mensagem: message,
       remetente: PerfilEnum.TECNICO,
       tecnico_responsavel: user?.nome,
+      id_mensagem_reply: replyingTo ? replyingTo.id_mensagem : null,
     };
 
     socketService.sendMessage(newMessage);
+
+    setReplyingTo(null); // Limpa a mensagem que está sendo respondida
 
     setMessage(""); // Limpa o input após enviar
 
@@ -646,7 +696,7 @@ export default function ChatTecnico() {
             messages[0].id_mensagem ?? null,
             10
           );
-          console.log("Mais mensagens carregadas:", moreMessages);
+
           if (moreMessages.length === 0 || moreMessages.length < 10) {
             // Se não houver mais mensagens ou menos de 10 mensagens, não buscar mais
             setHasMoreMessages(false);
@@ -722,9 +772,11 @@ export default function ChatTecnico() {
         mensagem: null,
         remetente: PerfilEnum.TECNICO,
         tecnico_responsavel: user?.nome,
+        id_mensagem_reply: replyingTo ? replyingTo.id_mensagem : null,
       };
       const result = await uploadFile(fileUpload!, message, selectedChat!);
       socketService.sendMessage(result);
+      setReplyingTo(null); // Limpa a mensagem que está sendo respondida
     } catch (error) {
     } finally {
       setModalOpen(false);
@@ -733,7 +785,6 @@ export default function ChatTecnico() {
   };
 
   const handleSendAudio = async (file: File) => {
-    console.log("audio gravado", file);
     setUploading(true);
     try {
       const message: CreateMessageDto = {
@@ -741,14 +792,58 @@ export default function ChatTecnico() {
         mensagem: null,
         remetente: PerfilEnum.TECNICO,
         tecnico_responsavel: user?.nome,
+        id_mensagem_reply: replyingTo ? replyingTo.id_mensagem : null,
       };
       const result = await uploadFile(file!, message, selectedChat!);
       socketService.sendMessage(result);
+      setReplyingTo(null); // Limpa a mensagem que está sendo respondida
     } catch (error) {
     } finally {
       setModalOpen(false);
       setUploading(false);
     }
+  };
+
+  async function handleMessageActions(
+    action: MessageAction,
+    message: MessageDto
+  ) {
+    if (action === "delete") {
+      try {
+        await deleteMessage(message.id_mensagem);
+
+        successToast("Mensagem deletada com sucesso!");
+      } catch (error) {
+        errorToast("Erro ao apagar a mensagem. Tente novamente mais tarde!");
+      }
+    } else if (action === "reply") {
+      setReplyingTo(message);
+      inputRef.current?.focus();
+    } else if (action === "edit") {
+      if (canEditMessage(message.data)) {
+        setSelectedMessage(message);
+        setEditMessageModalOpen(true);
+      } else {
+        errorToast(
+          "Só é possível editar mensagens enviadas nos últimos 15 minutos."
+        );
+      }
+    }
+  }
+
+  const handleEditMessage = async (message: string, idMessage: number) => {
+    if (!message.trim()) return; // Evita envio de mensagens vazias
+
+    try {
+      await editMessage(message, idMessage);
+      successToast("Mensagem editada com sucesso!");
+    } catch (error) {
+      errorToast(
+        "Não foi possível editar a mensagem, tente novamente mais tarde."
+      );
+    }
+
+    inputRef.current?.focus(); //foca o cursor no input
   };
 
   if (loading)
@@ -821,6 +916,7 @@ export default function ChatTecnico() {
 
                     {/* Exibir a mensagem normalmente */}
                     <Message
+                      onClickMessageActions={handleMessageActions}
                       call={selectedChat!}
                       message={message}
                       isCurrentUser={message.remetente === "TECNICO"}
@@ -844,44 +940,69 @@ export default function ChatTecnico() {
           </div>
 
           {/* Input de mensagem fixo no final */}
-          <div className="mt-4 gap-2 flex flex-row ">
-            <ChatAudioComponent onSend={handleSendAudio} maxDurationSec={600} />
-            <input
-              ref={inputRef}
-              type="text"
-              placeholder="Mensagem..."
-              className="w-full p-2 border border-gray-300 dark:bg-neutral-700 dark:border-slate-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-            />
-            <Button
-              className="h-full bg-blue-400"
-              onClick={handleOpenFilePicker}
-            >
-              <FaPaperclip />
-            </Button>
-            <Button className="h-full" onClick={handleSendMessage}>
-              <SendIcon />
-            </Button>
+          {selectedChatIdRef.current > 0 && (
+            <div className="mt-4 flex flex-col gap-2">
+              {replyingTo && (
+                <ReplyMessagePreview
+                  isCurrentUser={replyingTo.remetente === "TECNICO"}
+                  nomeLogado={user?.nome!}
+                  message={replyingTo}
+                  onCancel={() => setReplyingTo(null)}
+                />
+              )}
 
-            <input
-              type="file"
-              accept="*"
-              ref={fileInputRef}
-              onChange={handleImageChange}
-              className="hidden"
-            />
-            <ImagePreviewModal
-              open={modalOpen}
-              onClose={() => setModalOpen(false)}
-              imageUrl={imageUrl}
-              onConfirm={handleConfirmUpload}
-              isUploading={uploading}
-              fileName={fileUpload?.name}
-            />
-            <ModalDragdrop open={modalDragdrop} />
-          </div>
+              <div className="flex flex-row gap-2">
+                <ChatAudioComponent
+                  onSend={handleSendAudio}
+                  maxDurationSec={600}
+                />
+                <input
+                  ref={inputRef}
+                  type="text"
+                  placeholder="Mensagem..."
+                  className="w-full p-2 border border-gray-300 dark:bg-neutral-700 dark:border-slate-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+                />
+                <Button
+                  className="h-full bg-blue-400"
+                  onClick={handleOpenFilePicker}
+                >
+                  <FaPaperclip />
+                </Button>
+                <Button className="h-full" onClick={handleSendMessage}>
+                  <SendIcon />
+                </Button>
+              </div>
+
+              <input
+                type="file"
+                accept="*"
+                ref={fileInputRef}
+                onChange={handleImageChange}
+                className="hidden"
+              />
+
+              <ImagePreviewModal
+                open={modalOpen}
+                onClose={() => setModalOpen(false)}
+                imageUrl={imageUrl}
+                onConfirm={handleConfirmUpload}
+                isUploading={uploading}
+                fileName={fileUpload?.name}
+              />
+
+              <EditMessageDialog
+                open={editMessageModalOpen}
+                onClose={() => setEditMessageModalOpen(false)}
+                message={selectedMessage}
+                onConfirm={handleEditMessage}
+              />
+
+              <ModalDragdrop open={modalDragdrop} />
+            </div>
+          )}
         </div>
       </div>
     </div>

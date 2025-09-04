@@ -40,6 +40,12 @@ class SocketService {
     this.client.on("operador_exited", (chamado) =>
       eventManager.emit("operador_exited", chamado)
     );
+    this.client.on("delete-message", (message) =>
+      eventManager.emit("delete-message", message)
+    );
+    this.client.on("update-message", (message) =>
+      eventManager.emit("update-message", message)
+    );
   }
 
   login(data: LoginSocketDto) {
