@@ -8,7 +8,11 @@ interface EditMessageModalProps {
   open: boolean;
   onClose: () => void;
   message?: MessageDto | null;
-  onConfirm: (newText: string, idMessage: number) => void;
+  onConfirm: (
+    newText: string,
+    idMessage: number,
+    messageDto: MessageDto
+  ) => void;
 }
 
 export default function EditMessageModal({
@@ -66,7 +70,7 @@ export default function EditMessageModal({
             disabled={!message || !text.trim()}
             onClick={() => {
               if (message && text.trim()) {
-                onConfirm(text, message.id_mensagem!);
+                onConfirm(text, message.id_mensagem!, message);
                 onClose();
               }
             }}

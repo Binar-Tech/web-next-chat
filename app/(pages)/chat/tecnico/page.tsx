@@ -48,7 +48,7 @@ import { socketService } from "../_services/socket/socketService";
 
 export default function ChatTecnico() {
   const { user, token, isAuthenticated } = useAuth();
-  const { successToast, errorToast } = useNotify();
+  const { successToast, errorToast, infoToast } = useNotify();
 
   const [calls, setCalls] = useState<ChamadosDto[] | null>(null);
   const [userLogged, setUserLogged] = useState<User>();
@@ -809,6 +809,12 @@ export default function ChatTecnico() {
     message: MessageDto
   ) {
     if (action === "delete") {
+      console.log(user);
+      console.log(message);
+      if (user?.nome != message.nome_tecnico) {
+        infoToast("Você não tem permissão para excluir essa mensagem!");
+        return;
+      }
       try {
         await deleteMessage(message.id_mensagem);
 
@@ -820,6 +826,10 @@ export default function ChatTecnico() {
       setReplyingTo(message);
       inputRef.current?.focus();
     } else if (action === "edit") {
+      if (user?.nome != message.nome_tecnico) {
+        infoToast("Você não tem permissão para editar essa mensagem!");
+        return;
+      }
       if (canEditMessage(message.data)) {
         setSelectedMessage(message);
         setEditMessageModalOpen(true);
@@ -831,8 +841,14 @@ export default function ChatTecnico() {
     }
   }
 
-  const handleEditMessage = async (message: string, idMessage: number) => {
+  const handleEditMessage = async (
+    message: string,
+    idMessage: number,
+    messageDto: MessageDto
+  ) => {
     if (!message.trim()) return; // Evita envio de mensagens vazias
+    console.log(user);
+    console.log(messageDto);
 
     try {
       await editMessage(message, idMessage);
